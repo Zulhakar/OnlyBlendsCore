@@ -1,7 +1,7 @@
 from typing import Any
 import bpy
 from ..core.helper import change_socket_shape
-from ..core.constants import IS_DEBUG, TREE_ICON
+from ..core.constants import IS_DEBUG, TREE_ICON, CntSocketTypes
 
 class GroupStringCollectionItem(bpy.types.PropertyGroup):
     id: bpy.props.StringProperty()
@@ -27,14 +27,15 @@ def change_all_socket_shapes(tree):
     for node in nodes:
         change_socket_shape(node)
 
-class ObCoreTree(bpy.types.NodeTree):
-    bl_label = "OnlyBlends Core Editor"
+class CustomNodeTree(bpy.types.NodeTree):
+    bl_label = "Custom Nodes"
     bl_icon = TREE_ICON
     bl_use_group_interface = False
     parent: bpy.props.PointerProperty(
         name="Node Tree",
         type=bpy.types.NodeTree
     )
+
     group_node_list: bpy.props.CollectionProperty(type=GroupStringCollectionItem)
     group_node_input_list: bpy.props.CollectionProperty(type=GroupSocketCollectionItem)
     group_node_output_list: bpy.props.CollectionProperty(type=GroupSocketCollectionItem)
@@ -46,7 +47,7 @@ class ObCoreTree(bpy.types.NodeTree):
         parent_group_nodes = []
         if self.parent:
             for node in self.parent.nodes:
-                if node.bl_idname == "GroupNodeObm":
+                if node.bl_idname == "GroupNodeCnt":
                     parent_group_nodes.append(node)
         return parent_group_nodes
 
@@ -60,7 +61,7 @@ class ObCoreTree(bpy.types.NodeTree):
         self.validate_links()
 
         for node in self.nodes:
-            if node.bl_idname == "GroupNodeObm":
+            if node.bl_idname == "GroupNodeCnt":
                 node.parent_node_tree = self
                 is_in_list = False
                 for key, value in self.group_node_list.items():
@@ -95,9 +96,9 @@ class ObCoreTree(bpy.types.NodeTree):
         for link in list(self.links):
             if link.to_socket.bl_idname == link.from_socket.bl_idname:
                 link.is_valid = True
-            elif link.to_socket.bl_idname == "FloatSocketType" and link.from_socket.bl_idname == "IntSocketType":
+            elif link.to_socket.bl_idname == CntSocketTypes.Float and link.from_socket.bl_idname == CntSocketTypes.Integer:
                 link.is_valid = True
-            elif link.to_socket.bl_idname == "IntSocketType" and link.from_socket.bl_idname == "FloatSocketType":
+            elif link.to_socket.bl_idname == CntSocketTypes.Integer and link.from_socket.bl_idname == CntSocketTypes.Float:
                 link.is_valid = True
             if not link.is_valid:
                 if IS_DEBUG:
@@ -165,7 +166,7 @@ class ObCoreTree(bpy.types.NodeTree):
             print("sync_sockets Node Tree:", self.name)
         for key, value in bpy.data.node_groups.items():
             for node_ in value.nodes:
-                if node_.bl_idname == "GroupNodeObm":
+                if node_.bl_idname == "GroupNodeCnt":
                     if node_.target_tree == self:
                         if is_input:
                             node_.inputs.clear()

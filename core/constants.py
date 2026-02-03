@@ -1,15 +1,19 @@
-APP_NAME = "OnlyBlends.Core"
-APP_NAME_SHORT = "obc"
-
 IS_DEBUG = True
-OB_TREE_TYPE = 'ObCoreTree'
+APP_NAME = "CustomNodeTemplate"
+APP_NAME_SHORT = "cnt"
+OB_TREE_TYPE = 'CustomNodeTree'
 
-#UI
 TREE_ICON = 'GHOST_ENABLED'
 
 SINGLE_VALUES_SOCKET_SHAPE = 'LINE'
 VERSATILE_SOCKET_SHAPE = 'CIRCLE'
 FIELDS_SOCKET_SHAPE = 'DIAMOND'
+
+CONSTANTS_MENU_IDNAME = f'NODE_MT_{APP_NAME_SHORT}_Constants'
+INPUT_MENU_IDNAME = f'NODE_MT_{APP_NAME_SHORT}_Input'
+GROUP_MENU_IDNAME = f'NOD_MT_{APP_NAME_SHORT}_Group'
+
+MAKE_GROUP_OT_IDNAME= f'node.{APP_NAME_SHORT}_make_group'
 
 
 COLOR_BLACK = (0.0, 0.0, 0.0, 1.0)
@@ -27,5 +31,27 @@ COLOR_EMPTY_SOCKET = COLOR_GRAY_2
 COLOR_BOOL_SOCKET = (0.803921569, 0.654901961, 0.839215686, 1.0)
 COLOR_FLOAT_VECTOR_SOCKET = (0.388235294, 0.388235294, 0.780392157, 1.0)
 
+class CntNodeTypes:
+    GroupNode = 'GroupNode'
+    ObjectNode = 'ObjectNode'
 
+class CntSocketTypes:
+    String = 'NodeSocketStringCnt'
+    Float = 'NodeSocketFloatCnt'
+    Integer = 'NodeSocketIntCnt'
+    Bool = 'NodeSocketBoolCnt'
+    Object = 'NodeSocketObjectCnt'
 
+    FloatVector = 'NodeSocketFloatVectorCnt'
+    FloatVectorField = 'NodeSocketFloatVectorFieldCnt'
+
+cnt_sockets_list = [
+    (CntSocketTypes.FloatVectorField, "Float Vector Field", "Float Vector Field"),
+    (CntSocketTypes.FloatVector, "Float Vector", "Float Vector"),
+
+    (CntSocketTypes.Float, "Float", "Float"),
+    (CntSocketTypes.String, "String", "String"),
+    (CntSocketTypes.Integer, "Integer", "Integer"),
+    (CntSocketTypes.Bool, "Boolean", "Boolean"),
+    (CntSocketTypes.Object, "Object", "Object")
+]

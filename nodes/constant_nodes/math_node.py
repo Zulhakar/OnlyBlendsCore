@@ -1,9 +1,9 @@
 import bpy
-from ..basic_nodes import ObmConstantNode
-from ...core.constants import IS_DEBUG
+from ..basic_nodes import ConstantNodeCnt
+from ...core.constants import IS_DEBUG, CntSocketTypes
 
 
-class MathNode(ObmConstantNode):
+class MathNodeCnt(ConstantNodeCnt):
     '''Basic Math operations'''
     bl_label = "Math"
 
@@ -45,9 +45,9 @@ class MathNode(ObmConstantNode):
 
 
     def init(self, context):
-        self.inputs.new('FloatSocketType', "Float")
-        self.inputs.new('FloatSocketType', "Float")
-        self.outputs.new('FloatSocketType', "Float")
+        self.inputs.new(CntSocketTypes.Float, "Float")
+        self.inputs.new(CntSocketTypes.Float, "Float")
+        self.outputs.new(CntSocketTypes.Float, "Float")
         super().init(context)
 
     def socket_update(self, socket):
@@ -58,4 +58,16 @@ class MathNode(ObmConstantNode):
         self.socket_update_disabled = True
         super().copy(node)
         self.operation = node.operation
+        for i, sock in enumerate(self.inputs):
+            self.inputs[i].inpput_value = node.inputs[i].input_value
+        for i, sock in enumerate(self.outputs):
+            self.outputs[i].input_value = node.outputs[i].input_value
         self.socket_update_disabled = False
+
+    def update(self):
+        if self.mute:
+            self.outputs[0].input_value = self.inputs[0].input_value
+            for link in self.outputs[0].links:
+                link.to_socket.input_value = self.outputs[0].input_value
+        else:
+            self.operation_update()

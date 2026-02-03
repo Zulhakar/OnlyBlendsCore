@@ -1,12 +1,12 @@
 import bpy
 
-from ..core.constants import OB_TREE_TYPE
+from ..core.constants import OB_TREE_TYPE, MAKE_GROUP_OT_IDNAME
 from ..core.helper import change_socket_shape
 
 
 def create_child_node_tree(old_tree, selected):
     new_tree = bpy.data.node_groups.new(
-        "Sound Tree",
+        "Custom Node",
         OB_TREE_TYPE
     )
     input_node = new_tree.nodes.new("NodeGroupInput")
@@ -21,6 +21,8 @@ def create_child_node_tree(old_tree, selected):
         new = new_tree.nodes.new(node.bl_idname)
         new.location = node.location
         new.copy(node)
+        if new.bl_idname == "GroupNodeCnt":
+            new.target_tree = node.target_tree
         min_x, min_y = min(new.location.x, min_x), min(new.location.y, min_y)
         max_x, max_y = max(new.location.x, max_x), max(new.location.y, max_y)
         # mapping[node] = new
@@ -53,10 +55,10 @@ def get_node_by_name(tree, name):
     return None
 
 
-class NODE_OT_my_make_group(bpy.types.Operator):
-    bl_idname = "node.my_make_group"
-    bl_label = "My Make Group"
-    bl_description = "Create a group from selected nodes (custom tree)"
+class MakeGroupOperator(bpy.types.Operator):
+    bl_idname = MAKE_GROUP_OT_IDNAME
+    bl_label = "Make Group"
+    bl_description = "Create a group from selected nodes"
 
     @classmethod
     def poll(cls, context):
@@ -75,7 +77,7 @@ class NODE_OT_my_make_group(bpy.types.Operator):
 
         new_tree, new_names_dict, new_input_node, new_output_node = create_child_node_tree(old_tree, selected)
 
-        group_node = old_tree.nodes.new("GroupNodeObm")
+        group_node = old_tree.nodes.new("GroupNodeCnt")
         group_node.node_tree = new_tree
         group_node.target_tree = new_tree
         group_node.parent_node_tree = bpy.data.node_groups[old_tree.name]
@@ -97,8 +99,8 @@ class NODE_OT_my_make_group(bpy.types.Operator):
 
                 # new_sock2 = group_node.inputs.new(link.to_socket.bl_idname, link.from_socket.bl_label)
                 old_tree_new_link_list.append((group_node.inputs[group_input_socket_index], link.from_socket))
-                #
                 tmp_node = get_node_by_name(new_tree, new_names_dict[link.to_node.name])
+
                 new_tree.links.new(new_input_node.outputs[group_input_socket_index],
                                    tmp_node.inputs[
                                        get_index_of_socket(link.to_node, link.to_socket)[0]]).is_valid = True
@@ -112,7 +114,9 @@ class NODE_OT_my_make_group(bpy.types.Operator):
                 # new_link = old_tree.links.new(new_sock2, link.from_socket)
                 # new_link_list.append((link.to_socket, new_sock2))
                 old_tree_new_link_list.append((group_node.outputs[group_output_socket_index], link.to_socket))
-                new_tree.links.new(get_node_by_name(new_tree, new_names_dict[link.from_node.name]).outputs[
+
+                tmp_node = get_node_by_name(new_tree, new_names_dict[link.from_node.name])
+                new_tree.links.new(tmp_node.outputs[
                                        get_index_of_socket(link.from_node, link.from_socket)[0]],
                                    new_output_node.inputs[
                                        get_index_of_socket(link.to_node, link.to_socket)[0]]).is_valid = True
@@ -132,14 +136,12 @@ class NODE_OT_my_make_group(bpy.types.Operator):
         change_socket_shape(group_node)
 
         for input in new_output_node.inputs[:-1]:
-            # -----------------------------
-            # inject
             input.group_node_tree_name = old_tree.name
             input.group_node_name = group_node.name
 
         group_name_string = new_tree.group_node_list.add()
         group_name_string.value = group_node.name
-        # Optional: alte Nodes löschen
+
         for node in selected:
             old_tree.nodes.remove(node)
 
@@ -167,9 +169,8 @@ class NODE_OT_my_group_tab(bpy.types.Operator):
         # go into selected
         group_nodes = [
             n for n in tree.nodes
-            if n.select and n.bl_idname == "GroupNodeObm"
+            if n.select and n.bl_idname == "GroupNodeCnt"
         ]
-
         if group_nodes:
             node = group_nodes[0]
             inner = node.target_tree
@@ -188,7 +189,6 @@ class NODE_OT_my_group_tab(bpy.types.Operator):
 class MY_MT_add_interface(bpy.types.Menu):
     bl_idname = "MY_MT_add_interface"
     bl_label = "Add"
-
     def draw(self, context):
         layout = self.layout
         layout.operator("my_interface.add_socket", text="Input").in_out = 'INPUT'
@@ -198,7 +198,6 @@ class MY_MT_add_interface(bpy.types.Menu):
 class MY_OT_AddSocket(bpy.types.Operator):
     bl_idname = "my_interface.add_socket"
     bl_label = "Add Interface Socket"
-
     in_out: bpy.props.EnumProperty(
         items=[
             ('INPUT', "Input", ""),
@@ -210,17 +209,12 @@ class MY_OT_AddSocket(bpy.types.Operator):
         tree = context.space_data.node_tree
         tree.interface.new_socket(
             name="Socket",
-            socket_type="FloatSocketType",
+            socket_type="NodeSocketFloatCnt",
             in_out=self.in_out,
         )
         for node in tree.nodes:
             if node.bl_idname == "NodeGroupOutput" or node.bl_idname == "NodeGroupInput":
                 change_socket_shape(node)
-
-        if tree.parent:
-            for node in tree.parent.nodes:
-                print(node.name)
-                print(node.bl_idname)
         return {'FINISHED'}
 
 
@@ -261,7 +255,6 @@ def get_group_input(node_tree):
 
 class CUSTOM_UL_items2(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
-
         if item.in_out == "INPUT":
             split = layout.split(factor=0.2)
             col = item.draw_color(context, None)
@@ -331,10 +324,10 @@ class NODE_PT_Sound_Group_Sockets(bpy.types.Panel):
                 split.label(text="")
                 col = interface_socket.draw_color(context, None)
                 split2 = layout.split(factor=0.9)
-                if hasattr(interface_socket, "obm_socket_type"):
-                    split2.prop(interface_socket, "obm_socket_type", text="Type")
+                if hasattr(interface_socket, "cnt_socket_type"):
+                    split2.prop(interface_socket, "cnt_socket_type", text="Type")
                     split2.template_node_socket(color=col)
 
 
-operator_classes = (CUSTOM_UL_items2, NODE_OT_my_group_tab, NODE_OT_my_make_group, MY_OT_AddSocket, NODE_PT_Sound_Group_Sockets,
+operator_classes = (CUSTOM_UL_items2, NODE_OT_my_group_tab, MakeGroupOperator, MY_OT_AddSocket, NODE_PT_Sound_Group_Sockets,
                     MY_MT_add_interface, MY_OT_RemoveSelected)

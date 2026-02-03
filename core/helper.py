@@ -1,5 +1,6 @@
 import bpy
 from .constants import VERSATILE_SOCKET_SHAPE, SINGLE_VALUES_SOCKET_SHAPE, FIELDS_SOCKET_SHAPE
+from .constants import CntSocketTypes
 
 def get_socket_index(sockets, socket):
     for i , value in enumerate(sockets):
@@ -15,7 +16,7 @@ def change_socket_shape(node):
                 socket.display_shape = VERSATILE_SOCKET_SHAPE
             else:
                 socket.display_shape = SINGLE_VALUES_SOCKET_SHAPE
-        if socket.bl_idname == "FloatVectorFieldSocketType":
+        if socket.bl_idname == CntSocketTypes.FloatVectorField:
             socket.display_shape = FIELDS_SOCKET_SHAPE
     for socket in node.outputs:
         if socket.bl_idname != "NodeSocketVirtual":
@@ -23,10 +24,10 @@ def change_socket_shape(node):
                 socket.display_shape = VERSATILE_SOCKET_SHAPE
             else:
                 socket.display_shape = SINGLE_VALUES_SOCKET_SHAPE
-        if socket.bl_idname == "FloatVectorFieldSocketType":
+        if socket.bl_idname ==  CntSocketTypes.FloatVectorField:
             socket.display_shape = FIELDS_SOCKET_SHAPE
 
-def _checker(self, tree):
+def get_parent_node_group(self, tree):
     parent = self.parent_node_tree
     while parent:
         if tree == parent:

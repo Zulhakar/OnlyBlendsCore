@@ -1,18 +1,18 @@
 import bpy
 from bpy.utils import register_class
 from bpy.utils import unregister_class
-from .group_nodes.group_node import GroupNodeObm
-from .basic_nodes import IntNode, FloatNode, StringNode, ObjectNode, BooleanNode
-from .constant_nodes.math_node import MathNode
+from .group_nodes.group_node import GroupNodeCnt
+from .basic_nodes import IntNodeCnt, FloatNodeCnt, StringNodeCnt, ObjectNodeCnt, BoolNodeCnt
+from .constant_nodes.math_node import MathNodeCnt
 
 classes = [
-    ObjectNode,
-    FloatNode,
-    IntNode,
-    StringNode,
-    BooleanNode,
-    GroupNodeObm,
-    MathNode,
+    ObjectNodeCnt,
+    FloatNodeCnt,
+    IntNodeCnt,
+    StringNodeCnt,
+    BoolNodeCnt,
+    GroupNodeCnt,
+    MathNodeCnt,
 
 ]
 

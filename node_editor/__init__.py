@@ -1,11 +1,11 @@
 import bpy
 from .operators import operator_classes
-from .node_tree import ObCoreTree, GroupStringCollectionItem, GroupSocketCollectionItem
-from .menus import (ConstantsMenu, InputMenu, GroupMenu, menu_draw, draw_add_menu)
+from .node_tree import CustomNodeTree, GroupStringCollectionItem, GroupSocketCollectionItem
+from .menus import (ConstantsMenu, InputMenu, GroupMenu, menu_draw)
 from .operators import NODE_OT_my_group_tab
 
 #attention: the order matters
-import_classes_ = [GroupStringCollectionItem, GroupSocketCollectionItem, ConstantsMenu, InputMenu, GroupMenu, ObCoreTree]
+import_classes_ = [GroupStringCollectionItem, GroupSocketCollectionItem, ConstantsMenu, InputMenu, GroupMenu, CustomNodeTree]
 addon_keymaps = []
 
 def register_keymap():
@@ -32,7 +32,7 @@ def register():
         bpy.utils.register_class(o_class)
 
     register_keymap()
-    bpy.types.NODE_MT_add.append(draw_add_menu)
+    #bpy.types.NODE_MT_add.append(draw_add_menu)
     bpy.types.NODE_MT_context_menu.append(menu_draw)
     for cls in import_classes_:
         bpy.utils.register_class(cls)
@@ -45,6 +45,6 @@ def unregister():
         bpy.utils.unregister_class(o_class)
 
     bpy.types.NODE_MT_context_menu.remove(menu_draw)
-    bpy.types.NODE_MT_add.remove(draw_add_menu)
+    #bpy.types.NODE_MT_add.remove(draw_add_menu)
 
 
