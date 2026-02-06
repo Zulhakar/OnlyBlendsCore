@@ -1,8 +1,8 @@
 import bpy
 
-from ..core.constants import OB_TREE_TYPE, MAKE_GROUP_OT_IDNAME
-from ..core.helper import change_socket_shape
-
+from ..base.constants import MAKE_GROUP_OT_IDNAME
+from ..base.helper import change_socket_shape
+from ...config import OB_TREE_TYPE
 
 def create_child_node_tree(old_tree, selected):
     new_tree = bpy.data.node_groups.new(
@@ -20,6 +20,10 @@ def create_child_node_tree(old_tree, selected):
     for node in selected:
         new = new_tree.nodes.new(node.bl_idname)
         new.location = node.location
+
+        # for i, inp_ in enumerate(node.inputs):
+        #     new.inputs[i].input_value = inp_.input_value
+
         new.copy(node)
         if new.bl_idname == "GroupNodeCnt":
             new.target_tree = node.target_tree
@@ -99,12 +103,22 @@ class MakeGroupOperator(bpy.types.Operator):
 
                 # new_sock2 = group_node.inputs.new(link.to_socket.bl_idname, link.from_socket.bl_label)
                 old_tree_new_link_list.append((group_node.inputs[group_input_socket_index], link.from_socket))
+
+                #group_node.socket_update_disabled = True
+                #group_node.inputs[group_input_socket_index].input_value = link.from_socket.input_value
+                #new_input_node.outputs[group_input_socket_index].input_value = link.from_socket.input_value
+                #group_node.socket_update_disabled = False
+
                 tmp_node = get_node_by_name(new_tree, new_names_dict[link.to_node.name])
 
                 new_tree.links.new(new_input_node.outputs[group_input_socket_index],
                                    tmp_node.inputs[
                                        get_index_of_socket(link.to_node, link.to_socket)[0]]).is_valid = True
+                new_input_node.outputs[group_input_socket_index].input_value = link.from_socket.input_value
+                tmp_node.inputs[get_index_of_socket(link.to_node, link.to_socket)[0]].input_value = link.from_socket.input_value
+
                 group_input_socket_index += 1
+
 
             elif link.to_node not in selected and link.from_node in selected:
                 new_sock = new_tree.interface.new_socket(link.to_socket.bl_label, socket_type=link.to_socket.bl_idname,
@@ -114,6 +128,7 @@ class MakeGroupOperator(bpy.types.Operator):
                 # new_link = old_tree.links.new(new_sock2, link.from_socket)
                 # new_link_list.append((link.to_socket, new_sock2))
                 old_tree_new_link_list.append((group_node.outputs[group_output_socket_index], link.to_socket))
+
 
                 tmp_node = get_node_by_name(new_tree, new_names_dict[link.from_node.name])
                 new_tree.links.new(tmp_node.outputs[

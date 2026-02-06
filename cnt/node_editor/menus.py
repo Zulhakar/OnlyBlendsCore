@@ -1,7 +1,7 @@
 import bpy
 from bl_ui import node_add_menu
-from ..core.constants import OB_TREE_TYPE, CONSTANTS_MENU_IDNAME, INPUT_MENU_IDNAME, GROUP_MENU_IDNAME, APP_NAME_SHORT
-from ..core.constants import MAKE_GROUP_OT_IDNAME
+from ...config import OB_TREE_TYPE
+from ..base.constants import CONSTANTS_MENU_IDNAME, INPUT_MENU_IDNAME, GROUP_MENU_IDNAME, MAKE_GROUP_OT_IDNAME
 
 
 class ConstantsMenu(bpy.types.Menu):

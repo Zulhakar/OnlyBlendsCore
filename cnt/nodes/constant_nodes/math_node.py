@@ -1,6 +1,8 @@
 import bpy
 from ..basic_nodes import ConstantNodeCnt
-from ...core.constants import IS_DEBUG, CntSocketTypes, VERSATILE_SOCKET_SHAPE
+from ...base.constants import CntSocketTypes, VERSATILE_SOCKET_SHAPE
+from ....config import IS_DEBUG
+
 
 class MathNodeCnt(ConstantNodeCnt):
     '''Basic Math operations'''
@@ -50,6 +52,8 @@ class MathNodeCnt(ConstantNodeCnt):
         self.inputs[0].display_shape = VERSATILE_SOCKET_SHAPE
         self.inputs[1].display_shape = VERSATILE_SOCKET_SHAPE
         self.outputs[0].display_shape = VERSATILE_SOCKET_SHAPE
+        #self.outputs[0].is_constant = True
+
     def socket_update(self, socket):
         if socket != self.outputs[0]:
             self.operation_update()
@@ -62,3 +66,8 @@ class MathNodeCnt(ConstantNodeCnt):
                 link.to_socket.input_value = self.outputs[0].input_value
         else:
             self.operation_update()
+
+    def copy(self, node):
+        super().copy(node)
+        #ctrl + V / C crashed with the following line, this is a blender core problem or has to do with inheritance
+        #self.operation = node.operation

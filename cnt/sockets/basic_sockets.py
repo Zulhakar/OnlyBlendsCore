@@ -2,11 +2,11 @@ import bpy
 from bpy.types import NodeSocket, NodeTreeInterfaceSocket
 from bpy.utils import register_class, unregister_class
 
-from ..core.constants import (COLOR_OBJECT_SOCKET, COLOR_BLACK, COLOR_STRING_SOCKET, COLOR_INT_SOCKET, COLOR_FLOAT_SOCKET,
-                              COLOR_FLOAT_VECTOR_SOCKET, COLOR_EMPTY_SOCKET, COLOR_BOOL_SOCKET, IS_DEBUG,
+from ..base.constants import (COLOR_OBJECT_SOCKET, COLOR_BLACK, COLOR_STRING_SOCKET, COLOR_INT_SOCKET, COLOR_FLOAT_SOCKET,
+                              COLOR_FLOAT_VECTOR_SOCKET, COLOR_EMPTY_SOCKET, COLOR_BOOL_SOCKET,
                               CntSocketTypes, cnt_sockets_list)
-from ..core.helper import get_socket_index
-
+from ..base.helper import get_socket_index
+from ...config import IS_DEBUG
 
 class NodeSocketCnt(NodeSocket):
     is_constant: bpy.props.BoolProperty()
@@ -40,6 +40,7 @@ class NodeSocketCnt(NodeSocket):
                     node = self.node
                     tree = bpy.data.node_groups[self.selected_node_group_name]
                     tree2 = bpy.data.node_groups[self.node_group_name]
+                    not_triggerd_from_group_node = True
                     for node_ in tree.nodes:
                         if node_.bl_idname == "GroupNodeCnt":
                             if node_.target_tree == tree2:
@@ -47,6 +48,7 @@ class NodeSocketCnt(NodeSocket):
                                 if node_.outputs[sock_index].bl_idname != CntSocketTypes.FloatVectorField:
                                     #node_.was_fired = True
                                     if node_.was_fired:
+                                        not_triggerd_from_group_node = False
                                         node_.outputs[sock_index].input_value = self.input_value
                                 else:
                                     for link in node_.outputs[sock_index].links:
@@ -56,6 +58,8 @@ class NodeSocketCnt(NodeSocket):
                                             new_item.value = item.value
                                         for link2 in node_.outputs[sock_index].links:
                                             link2.to_node.socket_update(link2.to_socket)
+                    if not_triggerd_from_group_node:
+                        print("internal update TODO")
     @classmethod
     def draw_color_simple(cls):
         return cls.sock_col
@@ -94,7 +98,6 @@ class NodeSocketObjectCnt(NodeSocketCnt):
 
 class NodeTreeInterfaceSocketObjectCnt(NodeTreeInterfaceSocketCnt):
     bl_socket_idname = 'NodeSocketObjectCnt'
-
     def draw_color(self, context, node):
         # cls.display_shape = "SQUARE"
         return COLOR_OBJECT_SOCKET
@@ -118,7 +121,6 @@ class NodeSocketFloatVectorCnt(NodeSocketCnt):
     sock_col = COLOR_FLOAT_VECTOR_SOCKET
 
     input_value: bpy.props.FloatVectorProperty(update=lambda self, context: self.update_prop(), name="FloatVector")
-
     def draw(self, context, layout, node, text):
         if self.is_constant:
             layout.alignment = 'EXPAND'
@@ -131,7 +133,6 @@ class NodeSocketFloatVectorCnt(NodeSocketCnt):
 
 class NodeTreeInterfaceSocketFloatVectorCnt(NodeTreeInterfaceSocketCnt):
     bl_socket_idname = 'NodeSocketFloatVectorCnt'
-
     def draw_color(self, context, node):
         return COLOR_FLOAT_VECTOR_SOCKET
 

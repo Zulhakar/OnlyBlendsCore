@@ -1,9 +1,7 @@
 import bpy
-
-from ...core.constants import OB_TREE_TYPE, IS_DEBUG
 from ...nodes.basic_nodes import NodeCnt
-from ...core.helper import get_socket_index, get_parent_node_group
-
+from ...base.helper import get_socket_index, get_parent_node_group
+from ....config import OB_TREE_TYPE, IS_DEBUG
 
 class GroupNodeCnt(NodeCnt, bpy.types.NodeCustomGroup):
     bl_label = "Group"
@@ -38,11 +36,6 @@ class GroupNodeCnt(NodeCnt, bpy.types.NodeCustomGroup):
 
     def draw_buttons(self, context, layout):
         layout.prop(self, "target_tree", text="")
-        # if IS_DEBUG:
-        #     for i, in_sock in enumerate(self.inputs):
-        #         layout.prop(in_sock, "input_value", text=in_sock.name)
-        #     for i, out_sock in enumerate(self.outputs):
-        #         layout.prop(in_sock, "input_value", text=out_sock.name)
 
     def socket_update(self, socket):
         super().socket_update(socket)

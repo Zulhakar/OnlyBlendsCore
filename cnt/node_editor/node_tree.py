@@ -1,7 +1,9 @@
 from typing import Any
 import bpy
-from ..core.helper import change_socket_shape
-from ..core.constants import IS_DEBUG, TREE_ICON, CntSocketTypes
+from ..base.helper import change_socket_shape
+from ..base.constants import CntSocketTypes
+from ...config import  IS_DEBUG, TREE_ICON
+
 
 class GroupStringCollectionItem(bpy.types.PropertyGroup):
     id: bpy.props.StringProperty()

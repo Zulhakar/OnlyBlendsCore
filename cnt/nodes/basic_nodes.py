@@ -1,7 +1,7 @@
 import bpy
-from ..core.constants import IS_DEBUG, SINGLE_VALUES_SOCKET_SHAPE, VERSATILE_SOCKET_SHAPE
-from ..core.constants import OB_TREE_TYPE, CntSocketTypes
-from ..core.helper import change_socket_shape
+from ..base.constants import CntSocketTypes
+from ..base.helper import change_socket_shape
+from ...config import IS_DEBUG, OB_TREE_TYPE
 
 class NodeCnt:
     socket_update_disabled: bpy.props.BoolProperty(default=False)
@@ -78,9 +78,6 @@ class ConstantNodeCnt(NodeCnt, bpy.types.Node):
                         else:
                             link.to_socket.input_value = self.outputs[0].input_value
 
-    def init(self, context):
-        super().init(context)
-        self.outputs[0].is_constant = True
 
 class ObjectNodeCnt(ConstantNodeCnt):
     '''Object Node'''
@@ -89,12 +86,12 @@ class ObjectNodeCnt(ConstantNodeCnt):
         self.outputs.new(CntSocketTypes.Object, "Object")
         super().init(context)
 
-
 class FloatNodeCnt(ConstantNodeCnt):
     '''Float Value Node'''
     bl_label = "Value"
     def init(self, context):
         self.outputs.new(CntSocketTypes.Float, "Float")
+        self.outputs[0].is_constant = True
         super().init(context)
 
 
@@ -103,14 +100,15 @@ class IntNodeCnt(ConstantNodeCnt):
     bl_label = "Integer"
     def init(self, context):
         self.outputs.new(CntSocketTypes.Integer, "Integer")
+        self.outputs[0].is_constant = True
         super().init(context)
-
 
 class StringNodeCnt(ConstantNodeCnt):
     '''String Node'''
     bl_label = "String"
     def init(self, context):
         self.outputs.new(CntSocketTypes.String, "String")
+        self.outputs[0].is_constant = True
         super().init(context)
 
 
@@ -119,4 +117,5 @@ class BoolNodeCnt(ConstantNodeCnt):
     bl_label = "Boolean"
     def init(self, context):
         self.outputs.new(CntSocketTypes.Bool, "Boolean")
+        self.outputs[0].is_constant = True
         super().init(context)
