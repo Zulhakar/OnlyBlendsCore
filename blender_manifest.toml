@@ -3,11 +3,11 @@ schema_version = "1.0.0"
 id = "custom_nodes_template"
 version = "0.1.0"
 name = "Custom Nodes Template"
-tagline = "Create a Node Editor for Custom Nodes only with Python"
+tagline = "1. It's a Node Template 2. Spawn Objects from Geometry Modifiers"
 maintainer = "Zulhakar (ChangeGamer) <Ilineiros@proton.me>"
 type = "add-on"
 website = "https://github.com/Zulhakar/CustomNodesTemplate"
-tags = ["Nodes"]
+tags = ["Node"]
 blender_version_min = "4.2.0"
 license = [
     "SPDX:GPL-3.0-or-later",

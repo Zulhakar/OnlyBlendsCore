@@ -1,8 +1,6 @@
 import bpy
 from ..basic_nodes import ConstantNodeCnt
 from ...base.helper import get_socket_index
-
-
 def find_objects_of_node_group(target_node_group_name):
     found_objects = []
     # Iterate through all objects in the current blend file
@@ -144,13 +142,14 @@ class ModifierNode(ConstantNodeCnt):
                     modifier[pair.socket_identifier] = self.inputs[pair.socket_index_mod].input_value
                 elif hasattr(self.inputs[pair.socket_index_mod], "default_value"):
                     modifier[pair.socket_identifier] = self.inputs[pair.socket_index_mod].default_value
+
+
             self.node_tree.interface.active.hide_in_modifier = True
-            self.node_tree.interface.active.hide_in_modifier = False
             for i, out_socket in enumerate(self.outputs):
                 if out_socket.bl_idname == 'NodeSocketObjectCnt' and i == 0:
                     self.outputs[0].input_value = self.obj
                 else:
-                    # I have no solution to get the output sockets ATM
+                    # I have no solution to get the other output sockets ATM
                     pass
 
         else:

@@ -33,12 +33,13 @@ class CntSocketTypes:
     FloatVectorField = 'NodeSocketFloatVectorFieldCnt'
 
 cnt_sockets_list = [
-    (CntSocketTypes.FloatVectorField, "Float Vector Field", "Float Vector Field"),
-    (CntSocketTypes.FloatVector, "Float Vector", "Float Vector"),
-
     (CntSocketTypes.Float, "Float", "Float"),
     (CntSocketTypes.String, "String", "String"),
     (CntSocketTypes.Integer, "Integer", "Integer"),
     (CntSocketTypes.Bool, "Boolean", "Boolean"),
-    (CntSocketTypes.Object, "Object", "Object")
+    (CntSocketTypes.Object, "Object", "Object"),
+
+    (CntSocketTypes.FloatVectorField, "Float Vector Field", "Float Vector Field"),
+    (CntSocketTypes.FloatVector, "Float Vector", "Float Vector"),
+
 ]
