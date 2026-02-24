@@ -6,7 +6,7 @@ from .cnt.sockets.basic_sockets import register as register_basic_sockets
 from .cnt.sockets.basic_sockets import unregister as unregister_basic_sockets
 from .cnt.nodes import register as register_nodes
 from .cnt.nodes import unregister as unregister_nodes
-from .cnt.node_editor.menus import InputMenu, GroupMenu
+from .cnt.node_editor.menus import InputMenu, GroupMenu, UtilMenu, RealtimeMenu, GeometryMenu
 
 from .config import OB_TREE_TYPE
 
@@ -17,13 +17,9 @@ def draw_add_menu(self, context):
         return
     layout.menu(InputMenu.bl_idname)
     layout.menu(GroupMenu.bl_idname)
-    node_add_menu.add_node_type(layout, "MathNodeCnt")
-    node_add_menu.add_node_type(layout, "ModifierNode")
-    node_add_menu.add_node_type(layout, "DuplicateObjectNode")
-    node_add_menu.add_node_type(layout, "SceneInfoNodeCnt")
-    node_add_menu.add_node_type(layout, "SwitchNodeCnt")
-    node_add_menu.add_node_type(layout, "CompareAndBoolNodeCnt")
-    node_add_menu.add_node_type(layout, "RealtimeValueNode")
+    layout.menu(UtilMenu.bl_idname)
+    layout.menu(RealtimeMenu.bl_idname)
+    layout.menu(GeometryMenu.bl_idname)
 
 
 def register():
