@@ -1,12 +1,12 @@
 schema_version = "1.0.0"
 
-id = "custom_nodes_template"
-version = "0.5.0-1"
-name = "Custom Nodes Template"
+id = "only_blends_core"
+version = "0.5.1"
+name = "OnlyBlends.Core"
 tagline = "1-Node Editor from scratch 2-Spawn Objects from Geo Modifiers"
 maintainer = "Zulhakar (ChangeGamer) <Ilineiros@proton.me>"
 type = "add-on"
-website = "https://github.com/Zulhakar/CustomNodesTemplate"
+website = "https://github.com/Zulhakar/OnlyBlendsCore"
 tags = ["Node"]
 blender_version_min = "4.2.0"
 license = [

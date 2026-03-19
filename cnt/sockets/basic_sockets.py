@@ -222,8 +222,6 @@ classes = (
     NodeSocketStringCnt, NodeTreeInterfaceSocketStringCnt,
     NodeSocketBoolCnt, NodeTreeInterfaceSocketBoolCnt,
 
-    NodeSocketFloatVectorCnt, NodeTreeInterfaceSocketFloatVectorCnt,
-    NodeSocketFloatVectorFieldCnt, NodeTreeInterfaceSocketFloatVectorFieldCnt
 )
 
 
@@ -234,4 +232,7 @@ def register():
 
 def unregister():
     for cls in reversed(classes):
-        unregister_class(cls)
+        try:
+            unregister_class(cls)
+        except Exception as e:
+            print(e)

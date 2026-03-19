@@ -1,6 +1,6 @@
 import bpy
 from ..base.helper import change_socket_shape
-from ...config import IS_DEBUG, OB_TREE_TYPE, CntSocketTypes
+from ...config import IS_DEBUG, CntSocketTypes, VALID_TREES
 
 
 class NodeCnt:
@@ -17,7 +17,8 @@ class NodeCnt:
 
     @classmethod
     def poll(cls, ntree):
-        return ntree.bl_idname == OB_TREE_TYPE or ntree.bl_idname == 'GeometryNodeTree'
+        return ntree.bl_idname in VALID_TREES
+
 
     def copy(self, node):
         self.log("copy")

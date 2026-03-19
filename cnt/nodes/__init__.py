@@ -33,4 +33,7 @@ def register():
 
 def unregister():
     for node_class in classes:
-        bpy.utils.unregister_class(node_class)
+        try:
+            bpy.utils.unregister_class(node_class)
+        except Exception as e:
+            print(e)

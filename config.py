@@ -1,11 +1,11 @@
 IS_DEBUG = True
-APP_NAME = "CustomNodeTemplate"
-APP_NAME_SHORT = "cnt"
-OB_TREE_TYPE = 'CustomNodeTree'
-NEW_NODE_GROUP_NAME = "Custom Nodes"
-NODE_EDITOR_NAME = "Custom Node Editor"
+APP_NAME = "OnlyBlends.Core"
+APP_NAME_SHORT = "obc"
+OB_TREE_TYPE = 'OnlyBlendsCoreNodeTree'
+NEW_NODE_GROUP_NAME = "Core Nodes"
+NODE_EDITOR_NAME = "OnlyBlends.Core Node Editor"
 TREE_ICON = 'GHOST_ENABLED'
-
+VALID_TREES = [OB_TREE_TYPE, 'OnlyBlendsGamepadNodeTree', 'OnlyBlendsMixerNodeTree']
 ########################################################################################################################
 # don't change this
 from .cnt.base.constants import *

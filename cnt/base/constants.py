@@ -39,7 +39,4 @@ cnt_sockets_list = [
     (CntSocketTypes.Bool, "Boolean", "Boolean"),
     (CntSocketTypes.Object, "Object", "Object"),
 
-    (CntSocketTypes.FloatVectorField, "Float Vector Field", "Float Vector Field"),
-    (CntSocketTypes.FloatVector, "Float Vector", "Float Vector"),
-
 ]

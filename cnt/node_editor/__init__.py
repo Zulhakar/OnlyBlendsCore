@@ -43,8 +43,10 @@ def unregister():
     for cls in reversed(import_classes_):
         bpy.utils.unregister_class(cls)
     for o_class in reversed(operator_classes):
-        bpy.utils.unregister_class(o_class)
-
+        try:
+            bpy.utils.unregister_class(o_class)
+        except Exception as e:
+            print(e)
     bpy.types.NODE_MT_context_menu.remove(menu_draw)
     #bpy.types.NODE_MT_add.remove(draw_add_menu)
 
