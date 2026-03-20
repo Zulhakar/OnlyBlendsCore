@@ -1,13 +1,21 @@
 import bpy
+from bpy.app.handlers import persistent
 from .operators import operator_classes
 from .node_tree import CustomNodeTree, GroupStringCollectionItem, GroupSocketCollectionItem
 from .menus import (ConstantsMenu, InputMenu, GroupMenu, UtilMenu, RealtimeMenu, GeometryMenu, menu_draw)
 from .operators import NODE_OT_my_group_tab
-
-#attention: the order matters
+from ..base.global_data import Data
+# attention: the order matters
 import_classes_ = [GroupStringCollectionItem, GroupSocketCollectionItem, ConstantsMenu, InputMenu, GroupMenu, UtilMenu,
                    RealtimeMenu, GeometryMenu, CustomNodeTree]
 addon_keymaps = []
+
+@persistent
+def load_blend_file_job(file_name):
+    for group in bpy.data.node_groups:
+        for node in group.nodes:
+            if hasattr(node, "refresh"):
+                node.refresh()
 
 def register_keymap():
     wm = bpy.context.window_manager
@@ -33,21 +41,30 @@ def register():
         bpy.utils.register_class(o_class)
 
     register_keymap()
-    #bpy.types.NODE_MT_add.append(draw_add_menu)
+    # bpy.types.NODE_MT_add.append(draw_add_menu)
     bpy.types.NODE_MT_context_menu.append(menu_draw)
     for cls in import_classes_:
         bpy.utils.register_class(cls)
+    bpy.app.handlers.load_post.append(load_blend_file_job)
 
 def unregister():
+    bpy.app.handlers.load_post.remove(load_blend_file_job)
+    for key in Data.uuid_message_bus.keys():
+        bpy.msgbus.clear_by_owner(Data.uuid_message_bus[key])
+        del Data.uuid_message_bus[key]
+    for key in Data.uuid_handler.keys():
+        bpy.app.handlers.frame_change_pre.remove(Data.uuid_handler[key].frame_change_handler)
+        del Data.uuid_handler[key]
     unregister_keymap()
     for cls in reversed(import_classes_):
-        bpy.utils.unregister_class(cls)
+        try:
+            bpy.utils.unregister_class(cls)
+        except Exception as e:
+            print(e)
     for o_class in reversed(operator_classes):
         try:
             bpy.utils.unregister_class(o_class)
         except Exception as e:
             print(e)
     bpy.types.NODE_MT_context_menu.remove(menu_draw)
-    #bpy.types.NODE_MT_add.remove(draw_add_menu)
-
-
+    # bpy.types.NODE_MT_add.remove(draw_add_menu)

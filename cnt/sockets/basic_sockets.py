@@ -207,7 +207,6 @@ class NodeSocketBoolCnt(NodeSocketCnt):
                 layout.prop(self, "input_value", text=text)
 
 
-
 class NodeTreeInterfaceSocketBoolCnt(NodeTreeInterfaceSocketCnt):
     bl_socket_idname = 'NodeSocketBoolCnt'
 
@@ -221,7 +220,6 @@ classes = (
     NodeSocketIntCnt, NodeTreeInterfaceSocketIntCnt,
     NodeSocketStringCnt, NodeTreeInterfaceSocketStringCnt,
     NodeSocketBoolCnt, NodeTreeInterfaceSocketBoolCnt,
-
 )
 
 

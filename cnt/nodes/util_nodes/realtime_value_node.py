@@ -6,6 +6,7 @@ from ....config import IS_DEBUG, CntSocketTypes, VERSATILE_SOCKET_SHAPE, cnt_soc
 class RealtimeValueNode(ConstantNodeCnt):
     '''Like a Switch Node but without the False Value so that the last value is stored, this is useful for gamepad buttons'''
     bl_label = "Realtime Value"
+    bl_icon = 'PLUGIN'
 
     input_type: bpy.props.EnumProperty(  # type: ignore
         name="Socket Type"
