@@ -1,6 +1,5 @@
 import bpy
 from bpy.types import NodeSocket, NodeTreeInterfaceSocket
-from bpy.utils import register_class, unregister_class
 
 from ...config import (COLOR_OBJECT_SOCKET, COLOR_BLACK, COLOR_STRING_SOCKET, COLOR_INT_SOCKET, COLOR_FLOAT_SOCKET,
                        COLOR_FLOAT_VECTOR_SOCKET, COLOR_EMPTY_SOCKET, COLOR_BOOL_SOCKET,
@@ -179,24 +178,11 @@ class NodeTreeInterfaceSocketBoolCnt(NodeTreeInterfaceSocketCnt):
     def draw_color(self, context, node):
         return COLOR_BOOL_SOCKET
 
-
-classes = (
+classes = [
     NodeSocketObjectCnt, NodeTreeInterfaceSocketObjectCnt,
     NodeSocketFloatCnt, NodeTreeInterfaceSocketFloatCnt,
     NodeSocketIntCnt, NodeTreeInterfaceSocketIntCnt,
     NodeSocketStringCnt, NodeTreeInterfaceSocketStringCnt,
     NodeSocketBoolCnt, NodeTreeInterfaceSocketBoolCnt,
-)
+]
 
-
-def register():
-    for cls in classes:
-        register_class(cls)
-
-
-def unregister():
-    for cls in reversed(classes):
-        try:
-            unregister_class(cls)
-        except Exception as e:
-            print(e)

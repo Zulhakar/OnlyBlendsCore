@@ -131,7 +131,7 @@ class ModifierNode(ConstantNodeCnt):
         super().init(context)
 
     def draw_buttons(self, context, layout):
-        layout.prop(self, "node_tree")
+        layout.prop(self, "node_tree", text="")
 
     def socket_update(self, socket):
         super().socket_update(socket)
