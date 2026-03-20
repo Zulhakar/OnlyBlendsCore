@@ -7,7 +7,7 @@ from ...base.global_data import Data
 
 def update_fps(*args):
     self = args[0]
-    self.outputs[1].input_value = bpy.data.scenes["Scene"].render.fps
+    self.outputs[1].input_value = bpy.context.scene.render.fps
 
 
 class SceneInfoNodeCnt(ConstantNodeCnt):
@@ -28,7 +28,7 @@ class SceneInfoNodeCnt(ConstantNodeCnt):
         msg_bus_obj = object()
         Data.uuid_message_bus[self.uuid_msg_bus] = msg_bus_obj
         bpy.msgbus.subscribe_rna(
-            key=bpy.data.scenes["Scene"].render.path_resolve("fps", False),
+            key= bpy.context.scene.render.path_resolve("fps", False),
             #key=(bpy.types.Scene, "frame_current"),
             owner=msg_bus_obj,
             args=(self,),

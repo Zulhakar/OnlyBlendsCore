@@ -49,12 +49,14 @@ def register():
 
 def unregister():
     bpy.app.handlers.load_post.remove(load_blend_file_job)
-    for key in Data.uuid_message_bus.keys():
-        bpy.msgbus.clear_by_owner(Data.uuid_message_bus[key])
-        del Data.uuid_message_bus[key]
-    for key in Data.uuid_handler.keys():
-        bpy.app.handlers.frame_change_pre.remove(Data.uuid_handler[key].frame_change_handler)
-        del Data.uuid_handler[key]
+    #keys = list(Data.uuid_message_bus.keys())
+    #for key in keys:
+    #    bpy.msgbus.clear_by_owner(Data.uuid_message_bus[key])
+    #    del Data.uuid_message_bus[key]
+    #keys = list(Data.uuid_handler.keys())
+    #for key in keys:
+    #    bpy.app.handlers.frame_change_pre.remove(Data.uuid_handler[key].frame_change_handler)
+    #    del Data.uuid_handler[key]
     unregister_keymap()
     for cls in reversed(import_classes_):
         try:

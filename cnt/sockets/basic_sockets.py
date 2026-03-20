@@ -97,6 +97,12 @@ class NodeSocketObjectCnt(NodeSocketCnt):
     input_value: bpy.props.PointerProperty(update=lambda self, context: self.update_prop(), name="Object",
                                            type=bpy.types.Object)
 
+    def draw(self, context, layout, node, text):
+        if self.is_output or self.is_linked:
+            layout.label(text=text)
+        else:
+            layout.prop(self, "input_value", text="", placeholder=self.name)
+
 
 class NodeTreeInterfaceSocketObjectCnt(NodeTreeInterfaceSocketCnt):
     bl_socket_idname = 'NodeSocketObjectCnt'
@@ -119,52 +125,6 @@ class NodeTreeInterfaceSocketFloatCnt(NodeTreeInterfaceSocketCnt):
         return COLOR_FLOAT_SOCKET
 
 
-class NodeSocketFloatVectorCnt(NodeSocketCnt):
-    """Float Vector"""
-    bl_label = "Float Vector"
-    sock_col = COLOR_FLOAT_VECTOR_SOCKET
-
-    input_value: bpy.props.FloatVectorProperty(update=lambda self, context: self.update_prop(), name="FloatVector")
-
-    def draw(self, context, layout, node, text):
-        if self.is_constant:
-            layout.alignment = 'EXPAND'
-            layout.prop(self, "input_value", text="")
-        else:
-            if self.is_output or self.is_linked:
-                layout.label(text=text)
-            else:
-                layout.prop(self, "input_value", text=text)
-
-
-class NodeTreeInterfaceSocketFloatVectorCnt(NodeTreeInterfaceSocketCnt):
-    bl_socket_idname = 'NodeSocketFloatVectorCnt'
-
-    def draw_color(self, context, node):
-        return COLOR_FLOAT_VECTOR_SOCKET
-
-
-class FloatVectorFieldItem(bpy.types.PropertyGroup):
-    # value: bpy.props.FloatVectorProperty(update=lambda self, context: self.update_prop())
-    value: bpy.props.FloatVectorProperty()
-
-
-register_class(FloatVectorFieldItem)
-
-
-class NodeSocketFloatVectorFieldCnt(NodeSocketCnt):
-    bl_label = "Float Vector Field"
-    sock_col = COLOR_FLOAT_VECTOR_SOCKET
-    input_value: bpy.props.CollectionProperty(type=FloatVectorFieldItem)
-
-
-class NodeTreeInterfaceSocketFloatVectorFieldCnt(NodeTreeInterfaceSocketCnt):
-    bl_socket_idname = 'NodeSocketFloatVectorFieldCnt'
-
-    def draw_color(self, context, node):
-        return COLOR_FLOAT_VECTOR_SOCKET
-
-
 class NodeSocketIntCnt(NodeSocketCnt):
     bl_label = "Integer"
     sock_col = COLOR_INT_SOCKET
@@ -182,6 +142,12 @@ class NodeSocketStringCnt(NodeSocketCnt):
     bl_label = "String"
     sock_col = COLOR_STRING_SOCKET
     input_value: bpy.props.StringProperty(update=lambda self, context: self.update_prop(), name="String")
+
+    def draw(self, context, layout, node, text):
+        if self.is_output or self.is_linked:
+            layout.label(text=text)
+        else:
+            layout.prop(self, "input_value", text="", placeholder=self.name)
 
 
 class NodeTreeInterfaceSocketStringCnt(NodeTreeInterfaceSocketCnt):

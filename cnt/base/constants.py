@@ -29,8 +29,6 @@ class CntSocketTypes:
     Bool = 'NodeSocketBoolCnt'
     Object = 'NodeSocketObjectCnt'
 
-    FloatVector = 'NodeSocketFloatVectorCnt'
-    FloatVectorField = 'NodeSocketFloatVectorFieldCnt'
 
 cnt_sockets_list = [
     (CntSocketTypes.Float, "Float", "Float"),

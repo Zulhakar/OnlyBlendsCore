@@ -16,16 +16,13 @@ def change_socket_shape(node):
                 socket.display_shape = VERSATILE_SOCKET_SHAPE
             else:
                 socket.display_shape = SINGLE_VALUES_SOCKET_SHAPE
-        if socket.bl_idname == CntSocketTypes.FloatVectorField:
-            socket.display_shape = FIELDS_SOCKET_SHAPE
     for socket in node.outputs:
         if socket.bl_idname != "NodeSocketVirtual":
             if bpy.app.version < (5, 0, 1):
                 socket.display_shape = VERSATILE_SOCKET_SHAPE
             else:
                 socket.display_shape = SINGLE_VALUES_SOCKET_SHAPE
-        if socket.bl_idname ==  CntSocketTypes.FloatVectorField:
-            socket.display_shape = FIELDS_SOCKET_SHAPE
+
 
 def get_parent_node_group(self, tree):
     parent = self.parent_node_tree
