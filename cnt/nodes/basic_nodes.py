@@ -47,8 +47,7 @@ class NodeCnt:
                     if link.to_socket.is_multi_input:
                         pass
                     else:
-                        if link.to_socket.bl_idname != CntSocketTypes.FloatVectorField:
-                            input.input_value = link.from_socket.input_value
+                        input.input_value = link.from_socket.input_value
 
         else:
             pass
