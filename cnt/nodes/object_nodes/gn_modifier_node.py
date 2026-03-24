@@ -1,6 +1,8 @@
 import bpy
 from ..basic_nodes import ConstantNodeCnt
 from ...base.helper import get_socket_index
+
+
 def find_objects_of_node_group(target_node_group_name):
     found_objects = []
     # Iterate through all objects in the current blend file
@@ -138,11 +140,11 @@ class ModifierNode(ConstantNodeCnt):
         if not socket.is_output:
             modifier = self.obj.modifiers[self.modifier_name]
             for pair in self.modifier_key_socket_pairs_input:
-                if hasattr(self.inputs[pair.socket_index_mod], "input_value"):
-                    modifier[pair.socket_identifier] = self.inputs[pair.socket_index_mod].input_value
-                elif hasattr(self.inputs[pair.socket_index_mod], "default_value"):
-                    modifier[pair.socket_identifier] = self.inputs[pair.socket_index_mod].default_value
-
+                if socket == self.inputs[pair.socket_index_mod]:
+                    if hasattr(self.inputs[pair.socket_index_mod], "input_value"):
+                        modifier[pair.socket_identifier] = self.inputs[pair.socket_index_mod].input_value
+                    elif hasattr(self.inputs[pair.socket_index_mod], "default_value"):
+                        modifier[pair.socket_identifier] = self.inputs[pair.socket_index_mod].default_value
 
             self.node_tree.interface.active.hide_in_modifier = True
             for i, out_socket in enumerate(self.outputs):
