@@ -43,6 +43,8 @@ class GeometryGroupInputCollectionItem(bpy.types.PropertyGroup):
     socket_index_group: bpy.props.IntProperty()
 
 
+
+
 class ModifierNode(ConstantNodeCnt):
     '''This Node control the Group Inputs of a Geometry Node Modifier'''
     bl_label = "Geometry Modifier Object"
@@ -87,7 +89,13 @@ class ModifierNode(ConstantNodeCnt):
         i = 0
         j = 0
         self.modifier_key_socket_pairs_input.clear()
-        for key, value in modifier.items():
+
+        if bpy.app.version < (5, 2, 0):
+            input_sockets = modifier.items()
+        else:
+            input_sockets = modifier.properties.inputs.items()
+
+        for key, value in input_sockets:
             if not "_use_attribute" in key and not "_attribute_name" in key:
                 socket = group_input.outputs[key]
                 new_col_item = self.modifier_key_socket_pairs_input.add()
@@ -99,6 +107,7 @@ class ModifierNode(ConstantNodeCnt):
                 new_col_item.socket_index_group = j
                 i += 1
                 j += 1
+
 
     def __add_socket_outputs(self, modifier):
         group_output = get_group_output(self.node_tree)[0]
@@ -128,6 +137,7 @@ class ModifierNode(ConstantNodeCnt):
             self.__add_input_sockets(modifier)
             self.__add_socket_outputs(modifier)
 
+
     def init(self, context):
         self.node_tree = None
         super().init(context)
@@ -142,11 +152,17 @@ class ModifierNode(ConstantNodeCnt):
             for pair in self.modifier_key_socket_pairs_input:
                 if socket == self.inputs[pair.socket_index_mod]:
                     if hasattr(self.inputs[pair.socket_index_mod], "input_value"):
-                        modifier[pair.socket_identifier] = self.inputs[pair.socket_index_mod].input_value
+                        if bpy.app.version < (5, 2, 0):
+                            modifier[pair.socket_identifier] = self.inputs[pair.socket_index_mod].input_value
+                        else:
+                            modifier.properties.inputs[pair.socket_identifier]["value"] = self.inputs[pair.socket_index_mod].input_value
                     elif hasattr(self.inputs[pair.socket_index_mod], "default_value"):
-                        modifier[pair.socket_identifier] = self.inputs[pair.socket_index_mod].default_value
+                        if bpy.app.version < (5, 2, 0):
+                            modifier[pair.socket_identifier] = self.inputs[pair.socket_index_mod].default_value
+                        else:
+                            modifier.properties.inputs[pair.socket_identifier]["value"] = self.inputs[pair.socket_index_mod].default_value
 
-            self.node_tree.interface.active.hide_in_modifier = True
+            self.node_tree.interface.active.hide_in_modifier = False
             for i, out_socket in enumerate(self.outputs):
                 if out_socket.bl_idname == 'NodeSocketObjectCnt' and i == 0:
                     self.outputs[0].input_value = self.obj
