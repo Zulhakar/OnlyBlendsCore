@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "only_blends_core"
-version = "0.5.1"
+version = "0.5.1-1"
 name = "OnlyBlends.Core"
 tagline = "1-Node Editor from scratch 2-Spawn Objects from Geo Modifiers"
 maintainer = "Zulhakar (ChangeGamer) <Ilineiros@proton.me>"

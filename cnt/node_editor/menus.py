@@ -11,13 +11,11 @@ class ConstantsMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        node_add_menu.add_node_type(layout, "FloatNodeCnt")
-        node_add_menu.add_node_type(layout, "IntNodeCnt")
-        node_add_menu.add_node_type(layout, "StringNodeCnt")
-        node_add_menu.add_node_type(layout, "BoolNodeCnt")
-        # layout.separator()
-        # node_add_menu.add_node_type(layout, "VectorNodeCnt")
-        # node_add_menu.add_node_type(layout, "CombineXyzNodeCnt")
+        node_add_menu.AddNodeMenu.node_operator(layout, "FloatNodeCnt")
+        node_add_menu.AddNodeMenu.node_operator(layout, "IntNodeCnt")
+        node_add_menu.AddNodeMenu.node_operator(layout, "StringNodeCnt")
+        node_add_menu.AddNodeMenu.node_operator(layout, "BoolNodeCnt")
+
 
 
 class InputMenu(bpy.types.Menu):
@@ -27,7 +25,7 @@ class InputMenu(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         layout.menu(ConstantsMenu.bl_idname)
-        node_add_menu.add_node_type(layout, "NodeGroupInput")
+        node_add_menu.AddNodeMenu.node_operator(layout, "NodeGroupInput")
 
 
 class GroupMenu(bpy.types.Menu):
@@ -36,9 +34,9 @@ class GroupMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        node_add_menu.add_node_type(layout, "NodeGroupInput")
-        node_add_menu.add_node_type(layout, "NodeGroupOutput")
-        node_add_menu.add_node_type(layout, "GroupNodeCnt")
+        node_add_menu.AddNodeMenu.node_operator(layout, "NodeGroupInput")
+        node_add_menu.AddNodeMenu.node_operator(layout, "NodeGroupOutput")
+        node_add_menu.AddNodeMenu.node_operator(layout, "GroupNodeCnt")
 
 
 class RealtimeMenu(bpy.types.Menu):
@@ -47,11 +45,11 @@ class RealtimeMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        node_add_menu.add_node_type(layout, "RealtimeValueNode")
-        node_add_menu.add_node_type(layout, "SceneInfoNodeCnt")
+        node_add_menu.AddNodeMenu.node_operator(layout, "RealtimeValueNode")
+        node_add_menu.AddNodeMenu.node_operator(layout, "SceneInfoNodeCnt")
         # atm inside obg
         # node_add_menu.add_node_type(layout, "TransformObjectNodeCnt")
-        node_add_menu.add_node_type(layout, "DuplicateObjectNode")
+        node_add_menu.AddNodeMenu.node_operator(layout, "DuplicateObjectNode")
 
 
 class GeometryMenu(bpy.types.Menu):
@@ -60,7 +58,7 @@ class GeometryMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        node_add_menu.add_node_type(layout, "ModifierNode")
+        node_add_menu.AddNodeMenu.node_operator(layout, "ModifierNode")
 
 
 class UtilMenu(bpy.types.Menu):
@@ -69,9 +67,9 @@ class UtilMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        node_add_menu.add_node_type(layout, "MathNodeCnt")
-        node_add_menu.add_node_type(layout, "SwitchNodeCnt")
-        node_add_menu.add_node_type(layout, "CompareAndBoolNodeCnt")
+        node_add_menu.AddNodeMenu.node_operator(layout, "MathNodeCnt")
+        node_add_menu.AddNodeMenu.node_operator(layout, "SwitchNodeCnt")
+        node_add_menu.AddNodeMenu.node_operator(layout, "CompareAndBoolNodeCnt")
 
 
 def menu_draw(self, context):
