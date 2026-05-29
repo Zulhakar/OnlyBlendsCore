@@ -1,21 +1,23 @@
 import bpy
 from ..basic_nodes import ConstantNodeCnt
-from ...base.helper import get_socket_index
+from ...base.global_data import Data
+
+import uuid
+
+
+def node_tree_interface_changed(*args):
+    self = args[0]
+    if self:
+        self.update_node_tree(None)
 
 
 def find_objects_of_node_group(target_node_group_name):
     found_objects = []
-    # Iterate through all objects in the current blend file
     for obj in bpy.data.objects:
-        # Iterate through all modifiers on the object
         for mod in obj.modifiers:
-            # Check if the modifier is a Geometry Nodes modifier ('NODES')
             if mod.type == 'NODES':
-                # Check if the node group assigned to the modifier matches the target name
                 if mod.node_group and mod.node_group.name == target_node_group_name:
                     found_objects.append((obj, mod.name))
-                    # Optional: Break to avoid adding the same object multiple times
-                    # if it uses the group in multiple modifiers
                     break
     return found_objects[0]
 
@@ -36,15 +38,6 @@ def get_group_output(node_tree):
     return inputs
 
 
-class GeometryGroupInputCollectionItem(bpy.types.PropertyGroup):
-    socket_name: bpy.props.StringProperty()
-    socket_identifier: bpy.props.StringProperty()
-    socket_index_mod: bpy.props.IntProperty()
-    socket_index_group: bpy.props.IntProperty()
-
-
-
-
 class ModifierNode(ConstantNodeCnt):
     '''This Node control the Group Inputs of a Geometry Node Modifier'''
     bl_label = "Geometry Modifier Object"
@@ -62,7 +55,7 @@ class ModifierNode(ConstantNodeCnt):
 
     modifier_name: bpy.props.StringProperty()
 
-    modifier_key_socket_pairs_input: bpy.props.CollectionProperty(type=GeometryGroupInputCollectionItem)
+    uuid_msg_bus: bpy.props.StringProperty()
 
     def __add_input_sockets(self, modifier):
         # TODO: check if group input exits or check interface
@@ -70,44 +63,23 @@ class ModifierNode(ConstantNodeCnt):
         self.inputs.clear()
         for i, socket in enumerate(group_input.outputs):
             if socket.bl_idname == 'NodeSocketFloat':
-                self.inputs.new('NodeSocketFloatCnt', socket.name)
+                inp = self.inputs.new('NodeSocketFloatCnt', socket.identifier)
             elif socket.bl_idname == 'NodeSocketInt':
-                self.inputs.new('NodeSocketIntCnt', socket.name)
+                self.inputs.new('NodeSocketIntCnt', socket.identifier)
             elif socket.bl_idname == 'NodeSocketBool':
-                self.inputs.new('NodeSocketBoolCnt', socket.name)
+                self.inputs.new('NodeSocketBoolCnt', socket.identifier)
             elif socket.bl_idname == 'NodeSocketString':
-                self.inputs.new('NodeSocketStringCnt', socket.name)
+                self.inputs.new('NodeSocketStringCnt', socket.identifier)
             elif socket.bl_idname == 'NodeSocketObject':
-                self.inputs.new('NodeSocketObjectCnt', socket.name)
+                self.inputs.new('NodeSocketObjectCnt', socket.identifier)
             else:
                 # TODO test different blender versions
                 if (socket.bl_idname != 'NodeSocketGeometry' and socket.bl_idname != 'NodeSocketMatrix'
                         and socket.bl_idname != 'NodeSocketClosure' and socket.bl_idname != 'NodeSocketVirtual'
                         and socket.bl_idname != 'NodeSocketBundle'):
-                    self.inputs.new(socket.bl_idname, socket.name)
-
-        i = 0
-        j = 0
-        self.modifier_key_socket_pairs_input.clear()
-
-        if bpy.app.version < (5, 2, 0):
-            input_sockets = modifier.items()
-        else:
-            input_sockets = modifier.properties.inputs.items()
-
-        for key, value in input_sockets:
-            if not "_use_attribute" in key and not "_attribute_name" in key:
-                socket = group_input.outputs[key]
-                new_col_item = self.modifier_key_socket_pairs_input.add()
-                new_col_item.socket_name = socket.name
-                new_col_item.socket_identifier = key
-                new_col_item.socket_index_mod = i
-                while group_input.outputs[j].identifier != key:
-                    j = j + 1
-                new_col_item.socket_index_group = j
-                i += 1
-                j += 1
-
+                    self.inputs.new(socket.bl_idname, socket.identifier)
+                else:
+                    self.inputs.new(socket.bl_idname, socket.identifier)
 
     def __add_socket_outputs(self, modifier):
         group_output = get_group_output(self.node_tree)[0]
@@ -136,11 +108,40 @@ class ModifierNode(ConstantNodeCnt):
             modifier = self.obj.modifiers[self.modifier_name]
             self.__add_input_sockets(modifier)
             self.__add_socket_outputs(modifier)
+            self.subscribe_to_interface()
 
+    def subscribe_to_interface(self):
+        bpy.msgbus.clear_by_owner(Data.uuid_message_bus[self.uuid_msg_bus])
+        Data.uuid_message_bus[self.uuid_msg_bus] = object()
+
+        bpy.msgbus.subscribe_rna(
+            key=self.node_tree.path_resolve("interface", False),
+            owner=Data.uuid_message_bus[self.uuid_msg_bus],
+            args=(self,),
+            notify=node_tree_interface_changed,
+            options={'PERSISTENT'}
+        )
+        for i in range(len(self.node_tree.interface.items_tree)):
+            bpy.msgbus.subscribe_rna(
+                key=self.node_tree.interface.items_tree[i].path_resolve("socket_type", False),
+                # key=(bpy.types.NlaStrip, "frame_end_ui"),
+                owner=Data.uuid_message_bus[self.uuid_msg_bus],
+                args=(self,),
+                notify=node_tree_interface_changed,
+                options={'PERSISTENT'}
+            )
 
     def init(self, context):
         self.node_tree = None
+        self.uuid_msg_bus = str(uuid.uuid4()).replace("-", "")
+        Data.uuid_message_bus[self.uuid_msg_bus] = object()
         super().init(context)
+
+    def free(self):
+        super().free()
+        if self.uuid_msg_bus in Data.uuid_message_bus.keys():
+            bpy.msgbus.clear_by_owner(Data.uuid_message_bus[self.uuid_msg_bus])
+            del Data.uuid_message_bus[self.uuid_msg_bus]
 
     def draw_buttons(self, context, layout):
         layout.prop(self, "node_tree", text="")
@@ -149,20 +150,20 @@ class ModifierNode(ConstantNodeCnt):
         super().socket_update(socket)
         if not socket.is_output:
             modifier = self.obj.modifiers[self.modifier_name]
-            for pair in self.modifier_key_socket_pairs_input:
-                if socket == self.inputs[pair.socket_index_mod]:
-                    if hasattr(self.inputs[pair.socket_index_mod], "input_value"):
-                        if bpy.app.version < (5, 2, 0):
-                            modifier[pair.socket_identifier] = self.inputs[pair.socket_index_mod].input_value
-                        else:
-                            modifier.properties.inputs[pair.socket_identifier]["value"] = self.inputs[pair.socket_index_mod].input_value
-                    elif hasattr(self.inputs[pair.socket_index_mod], "default_value"):
-                        if bpy.app.version < (5, 2, 0):
-                            modifier[pair.socket_identifier] = self.inputs[pair.socket_index_mod].default_value
-                        else:
-                            modifier.properties.inputs[pair.socket_identifier]["value"] = self.inputs[pair.socket_index_mod].default_value
 
-            self.node_tree.interface.active.hide_in_modifier = False
+            if hasattr(socket, "input_value"):
+                if bpy.app.version < (5, 2, 0):
+                    modifier[socket.name] = socket.input_value
+                else:
+                    modifier.properties.inputs[socket.name]["value"] = socket.input_value
+            elif hasattr(socket, "default_value"):
+                if bpy.app.version < (5, 2, 0):
+                    modifier[socket.name] = socket.default_value
+                else:
+                    modifier.properties.inputs[socket.name]["value"] = socket.default_value
+
+            self.node_tree.interface.active.hide_in_modifier = self.node_tree.interface.active.hide_in_modifier
+
             for i, out_socket in enumerate(self.outputs):
                 if out_socket.bl_idname == 'NodeSocketObjectCnt' and i == 0:
                     self.outputs[0].input_value = self.obj
