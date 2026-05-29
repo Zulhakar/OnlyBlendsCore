@@ -3,6 +3,7 @@ from ...nodes.basic_nodes import NodeCnt
 from ...base.helper import get_socket_index, get_parent_node_group
 from ....config import OB_TREE_TYPE, IS_DEBUG
 
+
 class GroupNodeCnt(NodeCnt, bpy.types.NodeCustomGroup):
     bl_label = "Group"
     bl_icon = 'NODETREE'
@@ -19,10 +20,10 @@ class GroupNodeCnt(NodeCnt, bpy.types.NodeCustomGroup):
         type=bpy.types.NodeTree
     )
 
-    group_input_node : bpy.props.StringProperty()
-    group_output_node :  bpy.props.StringProperty()
-    was_fired : bpy.props.BoolProperty(default=False)
-    was_fired_external : bpy.props.BoolProperty(default=False)
+    group_input_node: bpy.props.StringProperty()
+    group_output_node: bpy.props.StringProperty()
+    was_fired: bpy.props.BoolProperty(default=False)
+    was_fired_external: bpy.props.BoolProperty(default=False)
 
     def init(self, context):
         super().init(context)
@@ -47,9 +48,11 @@ class GroupNodeCnt(NodeCnt, bpy.types.NodeCustomGroup):
                         for i, tmp in enumerate(self.inputs):
                             node.outputs[i].input_value = self.inputs[i].input_value
                             for link in node.outputs[i].links:
-                                link.to_node.socket_update_disabled = True
+                                if hasattr(link.to_node, "socket_update_disabled"):
+                                    link.to_node.socket_update_disabled = True
                                 link.to_socket.input_value = link.from_socket.input_value
-                                link.to_node.socket_update_disabled = False
+                                if hasattr(link.to_node, "socket_update_disabled"):
+                                    link.to_node.socket_update_disabled = False
                         self.was_fired = True
                         node.outputs[index].input_value = socket.input_value
                         for link in node.outputs[index].links:

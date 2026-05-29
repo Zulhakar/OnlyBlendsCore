@@ -38,9 +38,9 @@ def get_group_output(node_tree):
     return inputs
 
 
-class ModifierNode(ConstantNodeCnt):
-    '''This Node control the Group Inputs of a Geometry Node Modifier'''
-    bl_label = "Geometry Modifier Object"
+class ModifierControlNode(ConstantNodeCnt):
+    '''This Node can control the Group Inputs of a Geometry Node Modifier'''
+    bl_label = "Modifier Control"
 
     node_tree: bpy.props.PointerProperty(
         name="Group",

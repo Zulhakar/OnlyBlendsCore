@@ -58,7 +58,7 @@ class GeometryMenu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        node_add_menu.AddNodeMenu.node_operator(layout, "ModifierNode")
+        node_add_menu.AddNodeMenu.node_operator(layout, "ModifierControlNode")
 
 
 class UtilMenu(bpy.types.Menu):

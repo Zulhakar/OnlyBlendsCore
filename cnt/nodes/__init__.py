@@ -2,7 +2,7 @@ import bpy
 from .group_nodes.group_node import GroupNodeCnt
 from .basic_nodes import IntNodeCnt, FloatNodeCnt, StringNodeCnt, ObjectNodeCnt, BoolNodeCnt
 from .util_nodes.math_node import MathNodeCnt
-from .object_nodes.gn_modifier_node import ModifierNode
+from .object_nodes.modifier_control_node import ModifierControlNode
 from .object_nodes.duplicate_object_node import DuplicateObjectNode
 from .util_nodes.scene_info_node import SceneInfoNodeCnt
 from .util_nodes.switch_node import SwitchNodeCnt
@@ -17,7 +17,7 @@ classes = [
     BoolNodeCnt,
     GroupNodeCnt,
     MathNodeCnt,
-    ModifierNode,
+    ModifierControlNode,
     DuplicateObjectNode,
     SceneInfoNodeCnt,
     SwitchNodeCnt,

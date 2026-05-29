@@ -5,6 +5,7 @@ from ...config import IS_DEBUG, CntSocketTypes, VALID_TREES
 
 class NodeCnt:
     socket_update_disabled: bpy.props.BoolProperty(default=False)
+    bl_icon = 'GHOST_ENABLED'
 
     def log(self, func_name):
         if IS_DEBUG:
