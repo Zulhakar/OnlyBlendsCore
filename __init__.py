@@ -1,11 +1,11 @@
 import bpy
-from .cnt.node_editor import register as register_node_editor
-from .cnt.node_editor import unregister as unregister_node_editor
-from .cnt.sockets import register as register_basic_sockets
-from .cnt.sockets import unregister as unregister_basic_sockets
-from .cnt.nodes import register as register_nodes
-from .cnt.nodes import unregister as unregister_nodes
-from .cnt.node_editor.menus import InputMenu, GroupMenu, UtilMenu, RealtimeMenu, GeometryMenu
+from .obc_custom_nodes.node_editor import register as register_node_editor
+from .obc_custom_nodes.node_editor import unregister as unregister_node_editor
+from .obc_custom_nodes.sockets import register as register_basic_sockets
+from .obc_custom_nodes.sockets import unregister as unregister_basic_sockets
+from .obc_custom_nodes.nodes import register as register_nodes
+from .obc_custom_nodes.nodes import unregister as unregister_nodes
+from .obc_custom_nodes.node_editor.menus import InputMenu, GroupMenu, UtilMenu, RealtimeMenu, GeometryMenu
 
 from .config import OB_TREE_TYPE
 

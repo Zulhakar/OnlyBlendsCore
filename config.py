@@ -8,7 +8,7 @@ TREE_ICON = 'GHOST_ENABLED'
 VALID_TREES = [OB_TREE_TYPE, 'OnlyBlendsGamepadNodeTree', 'OnlyBlendsMixerNodeTree']
 ########################################################################################################################
 # don't change this
-from .cnt.base.constants import *
+from .obc_custom_nodes.base.constants import *
 
 CONSTANTS_MENU_IDNAME = f'NODE_MT_{APP_NAME_SHORT}_Constants'
 INPUT_MENU_IDNAME = f'NODE_MT_{APP_NAME_SHORT}_Input'
