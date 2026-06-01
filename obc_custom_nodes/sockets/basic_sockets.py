@@ -45,21 +45,16 @@ class NodeSocketCnt(NodeSocket):
                         if node_.bl_idname == "GroupNodeCnt":
                             if node_.target_tree == tree2:
                                 sock_index = get_socket_index(node.inputs, self)
-                                if node_.outputs[sock_index].bl_idname != CntSocketTypes.FloatVectorField:
-                                    # node_.was_fired = True
-                                    if node_.was_fired:
-                                        not_triggerd_from_group_node = False
-                                        node_.outputs[sock_index].input_value = self.input_value
+                                if node_.was_fired:
+                                    not_triggerd_from_group_node = False
+                                    node_.outputs[sock_index].input_value = self.input_value
                                 else:
-                                    for link in node_.outputs[sock_index].links:
-                                        link.to_socket.input_value.clear()
-                                        for item in node.inputs[sock_index].input_value:
-                                            new_item = link.to_socket.input_value.add()
-                                            new_item.value = item.value
-                                        for link2 in node_.outputs[sock_index].links:
-                                            link2.to_node.socket_update(link2.to_socket)
-                    if not_triggerd_from_group_node:
-                        print("internal update TODO")
+                                    not_triggerd_from_group_node = False
+                                    node_.was_fired_internal = True
+                                    node_.outputs[sock_index].input_value = self.input_value
+                    #                print("internal trigger")
+                    #if not_triggerd_from_group_node:
+                    #    print("internal update TODO")
 
     @classmethod
     def draw_color_simple(cls):
@@ -178,6 +173,7 @@ class NodeTreeInterfaceSocketBoolCnt(NodeTreeInterfaceSocketCnt):
     def draw_color(self, context, node):
         return COLOR_BOOL_SOCKET
 
+
 classes = [
     NodeSocketObjectCnt, NodeTreeInterfaceSocketObjectCnt,
     NodeSocketFloatCnt, NodeTreeInterfaceSocketFloatCnt,
@@ -185,4 +181,3 @@ classes = [
     NodeSocketStringCnt, NodeTreeInterfaceSocketStringCnt,
     NodeSocketBoolCnt, NodeTreeInterfaceSocketBoolCnt,
 ]
-

@@ -23,7 +23,7 @@ class GroupNodeCnt(NodeCnt, bpy.types.NodeCustomGroup):
     group_input_node: bpy.props.StringProperty()
     group_output_node: bpy.props.StringProperty()
     was_fired: bpy.props.BoolProperty(default=False)
-    was_fired_external: bpy.props.BoolProperty(default=False)
+    was_fired_internal: bpy.props.BoolProperty(default=False)
 
     def init(self, context):
         super().init(context)
@@ -61,4 +61,9 @@ class GroupNodeCnt(NodeCnt, bpy.types.NodeCustomGroup):
             if self.was_fired:
                 for link in socket.links:
                     link.to_socket.input_value = socket.input_value
+                self.was_fired = False
+            else:
+                if self.was_fired_internal:
+                    for link in socket.links:
+                        link.to_socket.input_value = socket.input_value
                 self.was_fired = False
