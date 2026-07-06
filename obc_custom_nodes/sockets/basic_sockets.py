@@ -7,6 +7,13 @@ from ...config import (COLOR_OBJECT_SOCKET, COLOR_BLACK, COLOR_STRING_SOCKET, CO
 from ..base.helper import get_socket_index
 from ...config import IS_DEBUG
 
+def get_all_group_nodes(selected_node_group, node_group):
+    group_nodes = []
+    for node_ in selected_node_group.nodes:
+        if node_.bl_idname == "GroupNodeCnt":
+            if node_.target_tree == node_group:
+                group_nodes.append(node_)
+    return group_nodes
 
 class NodeSocketCnt(NodeSocket):
     is_constant: bpy.props.BoolProperty()
@@ -33,28 +40,46 @@ class NodeSocketCnt(NodeSocket):
 
         # ----------------------------------------------------------
         # inject update for build in nodes (Group Input/Output Node)
-
         if isinstance(self.node, bpy.types.NodeGroupOutput):
-            if self.selected_node_group_name != "":
-                if not self.disable_socket_update:
-                    node = self.node
-                    tree = bpy.data.node_groups[self.selected_node_group_name]
-                    tree2 = bpy.data.node_groups[self.node_group_name]
-                    not_triggerd_from_group_node = True
-                    for node_ in tree.nodes:
-                        if node_.bl_idname == "GroupNodeCnt":
-                            if node_.target_tree == tree2:
-                                sock_index = get_socket_index(node.inputs, self)
-                                if node_.was_fired:
-                                    not_triggerd_from_group_node = False
-                                    node_.outputs[sock_index].input_value = self.input_value
-                                else:
-                                    not_triggerd_from_group_node = False
-                                    node_.was_fired_internal = True
-                                    node_.outputs[sock_index].input_value = self.input_value
-                    #                print("internal trigger")
-                    #if not_triggerd_from_group_node:
-                    #    print("internal update TODO")
+            self.__group_node_link_function()
+
+    def __group_node_link_function(self):
+        if self.selected_node_group_name != "":
+            if not self.disable_socket_update:
+                node = self.node
+                selected_node_group = bpy.data.node_groups[self.selected_node_group_name]
+                node_group = bpy.data.node_groups[self.node_group_name]
+                not_triggerd_from_group_node = True
+                nodes = get_all_group_nodes(selected_node_group, node_group)
+                if len(nodes) == 1:
+                    sock_index = get_socket_index(node.inputs, self)
+                    nodes[0].outputs[sock_index].input_value = self.input_value
+                elif len(nodes) != 0:
+                    pass
+
+     
+
+    def __group_node_link_function_old(self):
+        if self.selected_node_group_name != "":
+            if not self.disable_socket_update:
+                node = self.node
+                tree = bpy.data.node_groups[self.selected_node_group_name]
+                tree2 = bpy.data.node_groups[self.node_group_name]
+                not_triggerd_from_group_node = True
+                for node_ in tree.nodes:
+                    if node_.bl_idname == "GroupNodeCnt":
+                        if node_.target_tree == tree2:
+                            sock_index = get_socket_index(node.inputs, self)
+                            if node_.was_fired:
+                                not_triggerd_from_group_node = False
+                                node_.outputs[sock_index].input_value = self.input_value
+                            else:
+                                not_triggerd_from_group_node = False
+                                node_.was_fired_internal = True
+                                node_.outputs[sock_index].input_value = self.input_value
+                #                print("internal trigger")
+                # if not_triggerd_from_group_node:
+                #    print("internal update TODO")
 
     @classmethod
     def draw_color_simple(cls):
