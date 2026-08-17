@@ -111,7 +111,8 @@ class ModifierControlNode(ConstantNodeCnt):
             self.subscribe_to_interface()
 
     def subscribe_to_interface(self):
-        bpy.msgbus.clear_by_owner(Data.uuid_message_bus[self.uuid_msg_bus])
+        if self.uuid_msg_bus in Data.uuid_message_bus.keys():
+            bpy.msgbus.clear_by_owner(Data.uuid_message_bus[self.uuid_msg_bus])
         Data.uuid_message_bus[self.uuid_msg_bus] = object()
 
         bpy.msgbus.subscribe_rna(
