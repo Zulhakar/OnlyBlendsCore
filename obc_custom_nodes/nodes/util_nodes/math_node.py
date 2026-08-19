@@ -22,11 +22,17 @@ class MathNodeCnt(ConstantNodeCnt):
         , update=lambda self, context: self.operation_update())
 
     def operation_update(self):
-        if len(self.outputs) > 0:
+        if getattr(self, 'socket_update_disabled', False):
+            return
+        self.socket_update_disabled = True
+        try:
+            if len(self.outputs) == 0:
+                return
             self.outputs[0].hide = False
             self.outputs[1].hide = True
             self.inputs[0].name = "Value"
             self.inputs[1].name = "Value"
+
             if self.operation == "ADD":
                 self.outputs[0].input_value = (self.inputs[0].input_value + self.inputs[1].input_value)
             elif self.operation == "SUB":
@@ -35,7 +41,6 @@ class MathNodeCnt(ConstantNodeCnt):
                 self.outputs[0].input_value = (self.inputs[0].input_value * self.inputs[1].input_value)
             elif self.operation == "DIV":
                 if self.inputs[1].input_value == 0.0:
-                    import sys
                     self.outputs[0].input_value = 0.0
                 else:
                     self.outputs[0].input_value = (self.inputs[0].input_value / self.inputs[1].input_value)
@@ -53,16 +58,29 @@ class MathNodeCnt(ConstantNodeCnt):
                 self.outputs[0].hide = True
                 self.outputs[1].hide = False
                 self.outputs[1].input_value = (self.inputs[0].input_value == self.inputs[1].input_value)
+        finally:
+            self.socket_update_disabled = False
+
+    def socket_update(self, socket):
+        if not socket.is_output:
+            # input changed -> recompute, but guard re-entrancy
+            if not getattr(self, 'socket_update_disabled', False):
+                self.operation_update()
+        else:
+            # output changed -> always propagate to linked nodes
+            for link in socket.links:
+                link.to_socket.input_value = socket.input_value
+
 
     def draw_buttons(self, context, layout):
-        if IS_DEBUG:
-            if len(self.outputs) > 0:
-                layout.label(text=f"input1: {self.inputs[0].input_value}")
-                layout.label(text=f"input2: {self.inputs[1].input_value}")
-                layout.label(text=f"output1: {self.outputs[0].input_value}")
-                layout.label(text=f"output2: {self.outputs[1].input_value}")
+            if IS_DEBUG:
+                if len(self.outputs) > 0:
+                    layout.label(text=f"input1: {self.inputs[0].input_value}")
+                    layout.label(text=f"input2: {self.inputs[1].input_value}")
+                    layout.label(text=f"output1: {self.outputs[0].input_value}")
+                    layout.label(text=f"output2: {self.outputs[1].input_value}")
 
-        layout.prop(self, "operation", text="")
+            layout.prop(self, "operation", text="")
 
 
     def init(self, context):
@@ -79,21 +97,19 @@ class MathNodeCnt(ConstantNodeCnt):
 
         #self.outputs[0].is_constant = True
 
-    def socket_update(self, socket):
-        if not socket.is_output:
-            self.operation_update()
-        else:
-            for link in socket.links:
-                link.to_socket.input_value = socket.input_value
-
     def update(self):
-        #ToDO test it
-        if self.mute:
-            self.outputs[0].input_value = self.inputs[0].input_value
-            for link in self.outputs[0].links:
-                link.to_socket.input_value = self.outputs[0].input_value
-        else:
-            self.operation_update()
+        if getattr(self, 'socket_update_disabled', False):
+            return
+        self.socket_update_disabled = True
+        try:
+            if self.mute:
+                self.outputs[0].input_value = self.inputs[0].input_value
+                for link in self.outputs[0].links:
+                    link.to_socket.input_value = self.outputs[0].input_value
+            else:
+                self.operation_update()
+        finally:
+            self.socket_update_disabled = False
 
     def copy(self, node):
         super().copy(node)

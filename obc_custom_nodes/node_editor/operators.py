@@ -90,6 +90,7 @@ class MakeGroupOperator(bpy.types.Operator):
         # new_output_node["parent_group_node"] = bpy.props.PointerProperty(type=bpy.types.Node)
         # new_output_node.parent_group_node = group_node
         new_tree.parent = old_tree
+        new_tree.group_node_name = group_node.name
         group_node.group_input_node = new_input_node.name
         group_node.group_output_node = new_output_node.name
 

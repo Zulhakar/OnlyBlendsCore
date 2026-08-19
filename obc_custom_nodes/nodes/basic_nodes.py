@@ -58,10 +58,10 @@ class NodeCnt:
         change_socket_shape(self)
 
     def socket_update(self, socket):
+        if getattr(self, 'socket_update_disabled', False):
+            return
         self.log("socket_update")
-        if IS_DEBUG:
-            if self.socket_update_disabled:
-                print("socket_update_disabled")
+
 
     def socket_value_update(self, context):
         self.log("socket_value_update")

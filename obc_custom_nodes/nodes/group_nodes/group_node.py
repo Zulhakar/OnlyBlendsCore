@@ -30,40 +30,52 @@ class GroupNodeCnt(NodeCnt, bpy.types.NodeCustomGroup):
 
     def node_group_tree_update(self, context):
         self.log("node_group_tree_update")
-        self.target_tree.group_node_input_list.clear()
-        self.target_tree.group_node_output_list.clear()
-        self.target_tree.update()
-        self.target_tree.parent = self.parent_node_tree
+        if self.target_tree:
+            self.target_tree.parent = self.parent_node_tree
+            self.target_tree.group_node_name = self.name
 
     def draw_buttons(self, context, layout):
         layout.prop(self, "target_tree", text="")
 
     def socket_update(self, socket):
-        super().socket_update(socket)
-        if not socket.is_output:
-            index = get_socket_index(self.inputs, socket)
-            for node in self.target_tree.nodes:
-                if node.bl_idname == 'NodeGroupInput':
-                    if node.outputs[index].bl_idname != 'NodeSocketVirtual':
-                        for i, tmp in enumerate(self.inputs):
-                            node.outputs[i].input_value = self.inputs[i].input_value
-                            for link in node.outputs[i].links:
-                                if hasattr(link.to_node, "socket_update_disabled"):
-                                    link.to_node.socket_update_disabled = True
-                                link.to_socket.input_value = link.from_socket.input_value
-                                if hasattr(link.to_node, "socket_update_disabled"):
-                                    link.to_node.socket_update_disabled = False
-                        self.was_fired = True
-                        node.outputs[index].input_value = socket.input_value
-                        for link in node.outputs[index].links:
-                            link.to_socket.input_value = socket.input_value
-        else:
-            if self.was_fired:
+        if getattr(self, "_updating", False):
+            return
+        self._updating = True
+        try:
+            super().socket_update(socket)
+            if not socket.is_output:
+                if not self.target_tree:
+                    return
+                old_active = self.target_tree.active_group_node_name
+                old_origin = self.target_tree.update_origin_is_input_push
+
+                self.target_tree.active_group_node_name = self.name
+                self.target_tree.update_origin_is_input_push = True
+
+                self.socket_update_disabled = True
+                try:
+                    for node in self.target_tree.nodes:
+                        if node.bl_idname == 'NodeGroupInput':
+                            for i, inp in enumerate(self.inputs):
+                                if i >= len(node.outputs): continue
+                                inner_out = node.outputs[i]
+                                inner_out.input_value = inp.input_value
+                                for link in inner_out.links:
+                                    link.to_socket.input_value = link.from_socket.input_value
+                            idx = get_socket_index(self.inputs, socket)
+                            if idx is not None and idx < len(node.outputs):
+                                inner_out = node.outputs[idx]
+                                inner_out.input_value = socket.input_value
+                                for link in inner_out.links:
+                                    link.to_socket.input_value = link.from_socket.input_value
+                    if self.target_tree:
+                        self.target_tree.update()
+                finally:
+                    self.socket_update_disabled = False
+                    self.target_tree.active_group_node_name = old_active
+                    self.target_tree.update_origin_is_input_push = old_origin
+            else:
                 for link in socket.links:
                     link.to_socket.input_value = socket.input_value
-                self.was_fired = False
-            else:
-                if self.was_fired_internal:
-                    for link in socket.links:
-                        link.to_socket.input_value = socket.input_value
-                self.was_fired = False
+        finally:
+            self._updating = False
