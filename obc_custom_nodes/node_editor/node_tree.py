@@ -56,8 +56,8 @@ class CustomNodeTree(bpy.types.NodeTree):
         inst.instance_id = group_node.instance_id
         return inst
 
-    def _evaluate_for_instance(self, group_node, inst):
-        # 1. snapshot the shared sockets we are going to touch
+    def _evaluate_for_instance(self, group_node):
+        # snapshot shared sockets we will touch
         snapshot = {}
         for node in self.nodes:
             if node.bl_idname == 'NodeGroupInput':
@@ -70,7 +70,7 @@ class CustomNodeTree(bpy.types.NodeTree):
                         snapshot[(node, inp)] = inp.input_value
 
         try:
-            # 2. push only this instance's inputs
+            # push this instance's inputs only
             for node in self.nodes:
                 if node.bl_idname != 'NodeGroupInput':
                     continue
@@ -81,12 +81,12 @@ class CustomNodeTree(bpy.types.NodeTree):
                     for link in inner_out.links:
                         link.to_socket.input_value = link.from_socket.input_value
 
-            # 3. evaluate the tree
+            # evaluate
             self.validate_links()
             self.handle_socks(self._get_interface_sockets(True), True)
             self.handle_socks(self._get_interface_sockets(False), False)
 
-            # 4. pull outputs back to this instance only
+            # pull outputs back to this instance only
             for node in self.nodes:
                 if node.bl_idname != 'NodeGroupOutput':
                     continue
@@ -96,14 +96,14 @@ class CustomNodeTree(bpy.types.NodeTree):
                     for link in group_node.outputs[i].links:
                         link.to_socket.input_value = link.from_socket.input_value
         finally:
-            # 5. restore shared sockets so the next instance sees a clean tree
+            # restore shared tree to its previous state
             for (node, sock), val in snapshot.items():
                 sock.input_value = val
 
     def update_instance(self, group_node):
         inst = self.get_or_create_instance(group_node)
         inst.dirty = True
-        self._evaluate_for_instance(group_node, inst)
+        self._evaluate_for_instance(group_node)
         inst.dirty = False
 
     def get_parent_group_nodes(self):

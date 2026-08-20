@@ -92,23 +92,13 @@ class GroupNodeCnt(NodeCnt, bpy.types.NodeCustomGroup):
 
     def copy(self, node):
         super().copy(node)
-        # new instance -> new private tree
-        if node.target_tree:
-            new_name = f"{node.target_tree.name}_inst_{self.instance_id}"
-            self.target_tree = duplicate_node_tree(node.target_tree, new_name)
+        # keep the same template tree, only new instance id
+        if not self.instance_id:
+            self.instance_id = f"{self.name}_{id(self)}"
 
     def node_group_tree_update(self, context):
-        if not self.target_tree:
-            return
-        # if the tree is already shared, make it private for this instance
-        owners = self.target_tree.get_parent_group_nodes()
-        if len(owners) > 1 or (owners and owners[0] != self):
-            new_name = f"{self.target_tree.name}_inst_{self.instance_id}"
-            self.target_tree = duplicate_node_tree(self.target_tree, new_name)
-
-        self.target_tree.parent = self.parent_node_tree
-        # keep per-instance entry
-        if hasattr(self.target_tree, "get_or_create_instance"):
+        if self.target_tree:
+            self.target_tree.parent = self.parent_node_tree
             self.target_tree.get_or_create_instance(self)
 
     def socket_update(self, socket):
@@ -121,7 +111,7 @@ class GroupNodeCnt(NodeCnt, bpy.types.NodeCustomGroup):
                 for link in socket.links:
                     link.to_socket.input_value = socket.input_value
                 return
-            # evaluate only this private tree
+            # per-instance evaluation, no tree duplication
             self.target_tree.update_instance(self)
         finally:
             self._updating = False
