@@ -1,7 +1,7 @@
 from typing import Any
 import bpy
 from ..base.helper import change_socket_shape
-from ...config import  IS_DEBUG, TREE_ICON,  CntSocketTypes, OB_TREE_TYPE, NODE_EDITOR_NAME
+from ...config import IS_DEBUG, TREE_ICON, CntSocketTypes, OB_TREE_TYPE, NODE_EDITOR_NAME
 
 
 class GroupStringCollectionItem(bpy.types.PropertyGroup):
@@ -13,19 +13,21 @@ class GroupSocketCollectionItem(bpy.types.PropertyGroup):
     name: bpy.props.StringProperty()
     type_name: bpy.props.StringProperty()
 
+class GroupInstanceState(bpy.types.PropertyGroup):
+    group_node_name: bpy.props.StringProperty()
+    instance_id: bpy.props.StringProperty()
+    dirty: bpy.props.BoolProperty(default=False)
+
 
 def get_group_input_output_nodes(tree):
     all_nodes = []
     for node in tree.nodes:
-        if node.bl_idname == "NodeGroupOutput":
-            all_nodes.append(node)
-        elif node.bl_idname == "NodeGroupInput":
+        if node.bl_idname in {"NodeGroupOutput","NodeGroupInput"}:
             all_nodes.append(node)
     return all_nodes
 
 def change_all_socket_shapes(tree):
-    nodes = get_group_input_output_nodes(tree)
-    for node in nodes:
+    for node in get_group_input_output_nodes(tree):
         change_socket_shape(node)
 
 class CustomNodeTree(bpy.types.NodeTree):
@@ -33,19 +35,76 @@ class CustomNodeTree(bpy.types.NodeTree):
     bl_label = NODE_EDITOR_NAME
     bl_icon = TREE_ICON
     bl_use_group_interface = False
+
     parent: bpy.props.PointerProperty(name="Node Tree", type=bpy.types.NodeTree)
 
     group_node_list: bpy.props.CollectionProperty(type=GroupStringCollectionItem)
     group_node_input_list: bpy.props.CollectionProperty(type=GroupSocketCollectionItem)
     group_node_output_list: bpy.props.CollectionProperty(type=GroupSocketCollectionItem)
 
-    # stable identifier, no Node pointer
-    group_node_name: bpy.props.StringProperty(name="Group Node Name")
+    group_instances: bpy.props.CollectionProperty(type=GroupInstanceState)
 
     was_fired : bpy.props.BoolProperty(default=False)
-    active_group_node_name: bpy.props.StringProperty(name="Active Group Node")
-    update_origin_is_input_push: bpy.props.BoolProperty(default=False)
     re_evaluating2: bpy.props.BoolProperty(default=False)
+
+    def get_or_create_instance(self, group_node):
+        for inst in self.group_instances:
+            if inst.group_node_name == group_node.name and inst.instance_id == group_node.instance_id:
+                return inst
+        inst = self.group_instances.add()
+        inst.group_node_name = group_node.name
+        inst.instance_id = group_node.instance_id
+        return inst
+
+    def _evaluate_for_instance(self, group_node, inst):
+        # 1. snapshot the shared sockets we are going to touch
+        snapshot = {}
+        for node in self.nodes:
+            if node.bl_idname == 'NodeGroupInput':
+                for out in node.outputs:
+                    if out.bl_idname != "NodeSocketVirtual":
+                        snapshot[(node, out)] = out.input_value
+            if node.bl_idname == 'NodeGroupOutput':
+                for inp in node.inputs:
+                    if inp.bl_idname != "NodeSocketVirtual":
+                        snapshot[(node, inp)] = inp.input_value
+
+        try:
+            # 2. push only this instance's inputs
+            for node in self.nodes:
+                if node.bl_idname != 'NodeGroupInput':
+                    continue
+                for i, inp in enumerate(group_node.inputs):
+                    if i >= len(node.outputs): continue
+                    inner_out = node.outputs[i]
+                    inner_out.input_value = inp.input_value
+                    for link in inner_out.links:
+                        link.to_socket.input_value = link.from_socket.input_value
+
+            # 3. evaluate the tree
+            self.validate_links()
+            self.handle_socks(self._get_interface_sockets(True), True)
+            self.handle_socks(self._get_interface_sockets(False), False)
+
+            # 4. pull outputs back to this instance only
+            for node in self.nodes:
+                if node.bl_idname != 'NodeGroupOutput':
+                    continue
+                for i, out_sock in enumerate(node.inputs):
+                    if i >= len(group_node.outputs): continue
+                    group_node.outputs[i].input_value = out_sock.input_value
+                    for link in group_node.outputs[i].links:
+                        link.to_socket.input_value = link.from_socket.input_value
+        finally:
+            # 5. restore shared sockets so the next instance sees a clean tree
+            for (node, sock), val in snapshot.items():
+                sock.input_value = val
+
+    def update_instance(self, group_node):
+        inst = self.get_or_create_instance(group_node)
+        inst.dirty = True
+        self._evaluate_for_instance(group_node, inst)
+        inst.dirty = False
 
     def get_parent_group_nodes(self):
         nodes = []
@@ -56,31 +115,28 @@ class CustomNodeTree(bpy.types.NodeTree):
         return nodes
 
     def get_owner_node(self):
-        if self.parent:
-            for n in self.parent.nodes:
-                if n.bl_idname == "GroupNodeCnt" and n.target_tree == self:
-                    return n
+        for n in self.parent.nodes if self.parent else []:
+            if n.bl_idname == "GroupNodeCnt" and n.target_tree == self:
+                return n
         return None
+
+    def get_instance(self, group_node):
+        for inst in self.group_instances:
+            if inst.group_node_name == group_node.name and inst.instance_id == group_node.instance_id:
+                return inst
+        return None
+
+
+    def _get_interface_sockets(self, is_input):
+        return [i for i in self.interface.items_tree if hasattr(i, "in_out") and ((i.in_out=='INPUT')==is_input)]
 
     def update(self):
         if IS_DEBUG:
             print("update Node Tree:", self.name)
         self.validate_links()
-
-        # keep group_node_name in sync
-        owners = self.get_parent_group_nodes()
-        if owners:
-            self.group_node_name = owners[0].name
-        else:
-            self.group_node_name = ""
-
         for node in self.nodes:
             if node.bl_idname == "GroupNodeCnt":
                 node.parent_node_tree = self
-                if not any(i.name == node.name for i in self.group_node_list):
-                    item = self.group_node_list.add()
-                    item.name = node.name
-                    item.id = node.name
             elif node.bl_idname == "NodeGroupOutput":
                 for inp_sock in node.inputs:
                     if inp_sock.bl_idname != "NodeSocketVirtual":
@@ -88,11 +144,15 @@ class CustomNodeTree(bpy.types.NodeTree):
                             inp_sock.selected_node_group_name = self.parent.name
                         inp_sock.node_group_name = self.name
 
-        inputs = [i for i in self.interface.items_tree if hasattr(i, "in_out") and i.in_out == 'INPUT']
-        outputs = [i for i in self.interface.items_tree if hasattr(i, "in_out") and i.in_out == 'OUTPUT']
+        # sync sockets
+        self.handle_socks(self._get_interface_sockets(True), True)
+        self.handle_socks(self._get_interface_sockets(False), False)
 
-        self.handle_socks(inputs, True)
-        self.handle_socks(outputs, False)
+        # push to all owners individually
+        for owner in self.get_parent_group_nodes():
+            inst = self.get_or_create_instance(owner)
+            if inst.dirty:
+                self._evaluate_for_instance(owner, inst)
 
     def validate_links(self):
         for link in list(self.links):
@@ -103,17 +163,11 @@ class CustomNodeTree(bpy.types.NodeTree):
             elif link.to_socket.bl_idname == CntSocketTypes.Integer and link.from_socket.bl_idname == CntSocketTypes.Float:
                 link.is_valid = True
             if not link.is_valid:
-                if IS_DEBUG:
-                    print("invalid link removed:", link)
-                    print(link.to_socket.bl_idname, link.from_socket.bl_idname)
-                    print(link.to_node.name, link.from_node.name)
                 self.links.remove(link)
-
     def handle_socks(self, sockets: list[Any], are_inputs=True):
         if IS_DEBUG:
             print("handle_socks Node Tree:", self.name)
         coll = self.group_node_input_list if are_inputs else self.group_node_output_list
-        ids_collection = {i.id for i in coll}
         sockets_tmp = [s for s in sockets if s.bl_socket_idname != "NodeSocketVirtual"]
 
         if len(sockets_tmp) == 0:
