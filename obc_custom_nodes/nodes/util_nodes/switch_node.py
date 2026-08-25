@@ -12,30 +12,27 @@ class SwitchNodeCnt(ConstantNodeCnt):
         , default=CntSocketTypes.Float
         , update=lambda self, context: self.input_update())
 
-    def input_update(self):
-        output_socket = self.outputs[0]
+    def _compute(self):
+        output_socket = None
+        true_sock = None
+        false_sock = None
         for socket in self.outputs:
-            socket.hide = True
             if socket.bl_idname == self.input_type:
                 output_socket = socket
-                output_socket.hide = False
-        # if self.input_type == CntSocketTypes.Bool:
-        #    out_sock.is_constant = True
         for socket in self.inputs:
-            if socket.bl_idname == self.input_type and (socket.name == "True" or socket.name == "False"):
-                socket.hide = False
-                socket.hide = False
-                if self.inputs[0].input_value and socket.name == "True":
-                    output_socket.input_value = socket.input_value
-                elif not self.inputs[0].input_value and socket.name == "False":
-                    output_socket.input_value = socket.input_value
-            else:
-                if socket.name == "True" or socket.name == "False":
-                    socket.hide = True
-                    socket.hide = True
-
-    def draw_buttons(self, context, layout):
-        layout.prop(self, "input_type", text="")
+            if socket.bl_idname == self.input_type:
+                if socket.name == "True":
+                    true_sock = socket
+                elif socket.name == "False":
+                    false_sock = socket
+        if output_socket is None:
+            return
+        if self.inputs[0].input_value:
+            if true_sock is not None:
+                output_socket.input_value = true_sock.input_value
+        else:
+            if false_sock is not None:
+                output_socket.input_value = false_sock.input_value
 
     def init(self, context):
         self.inputs.new(CntSocketTypes.Bool, "Switch")
@@ -50,6 +47,24 @@ class SwitchNodeCnt(ConstantNodeCnt):
                 out.hide = True
         super().init(context)
 
+    def recompute(self):
+        self._compute()
+
+    def input_update(self):
+        output_socket = self.outputs[0]
+        for socket in self.outputs:
+            socket.hide = True
+            if socket.bl_idname == self.input_type:
+                output_socket = socket
+                output_socket.hide = False
+        for socket in self.inputs:
+            if socket.bl_idname == self.input_type and (socket.name == "True" or socket.name == "False"):
+                socket.hide = False
+            else:
+                if socket.name == "True" or socket.name == "False":
+                    socket.hide = True
+        self._compute()
+
     def socket_update(self, socket):
         if not socket.is_output:
             self.input_update()
@@ -61,3 +76,6 @@ class SwitchNodeCnt(ConstantNodeCnt):
         super().copy(node)
         # ctrl + V / C crashed with the following line, this is a blender core problem or has to do with inheritance
         # self.input_type = node.input_type
+
+    def draw_buttons(self, context, layout):
+        layout.prop(self, "input_type", text="")
