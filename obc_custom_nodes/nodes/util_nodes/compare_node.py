@@ -30,6 +30,44 @@ class CompareAndBoolNodeCnt(ConstantNodeCnt):
         self.outputs.new(CntSocketTypes.Bool, "Output")
         super().init(context)
 
+    def operation_update(self):
+        self._compute()
+
+    def _compute(self):
+        if len(self.outputs) == 0:
+            return
+        output1 = self.outputs[0]
+
+        input1 = None
+        input2 = None
+        for input in self.inputs:
+            if not input.hide and not input1:
+                input1 = input
+                continue
+            if not input.hide and input1:
+                input2 = input
+                break
+        if input1 is None or input2 is None:
+            return
+
+        if self.operation == "GREATER":
+            output1.input_value = input1.input_value > input2.input_value
+        elif self.operation == "LESS":
+            output1.input_value = input1.input_value < input2.input_value
+        elif self.operation == "EQUAL":
+            output1.input_value = input1.input_value == input2.input_value
+        elif self.operation == "NOTEQUAL":
+            output1.input_value = input1.input_value != input2.input_value
+        elif self.operation == "AND":
+            output1.input_value = input1.input_value and input2.input_value
+        elif self.operation == "OR":
+            output1.input_value = input1.input_value or input2.input_value
+        elif self.operation == "XOR":
+            output1.input_value = input1.input_value ^ input2.input_value
+
+    def recompute(self):
+        self._compute()
+
     def socket_type_update(self):
         for input in self.inputs:
             if input.bl_idname == self.socket_type:
@@ -57,34 +95,6 @@ class CompareAndBoolNodeCnt(ConstantNodeCnt):
                 ('LESS', 'Less Than', 'Less Than'),
                 ('EQUAL', 'Equal', 'Equal'),
             )
-
-    def operation_update(self):
-        input1 = None
-        input2 = None
-        if len(self.outputs) > 0:
-            output1 = self.outputs[0]
-            for input in self.inputs:
-                if not input.hide and not input1:
-                    input1 = input
-                    continue
-                if not input.hide and input1:
-                    input2 = input
-                    break
-
-            if self.operation == "GREATER":
-                output1.input_value = input1.input_value > input2.input_value
-            elif self.operation == "LESS":
-                output1.input_value = input1.input_value < input2.input_value
-            elif self.operation == "EQUAL":
-                output1.input_value = input1.input_value == input2.input_value
-            elif self.operation == "NOT EQUAL":
-                output1.input_value = input1.input_value != input2.input_value
-            elif self.operation == "AND":
-                output1.input_value = input1.input_value and input2.input_value
-            elif self.operation == "OR":
-                output1.input_value = input1.input_value or input2.input_value
-            elif self.operation == "XOR":
-                output1.input_value = input1.input_value ^ input2.input_value
 
     def draw_buttons(self, context, layout):
         if IS_DEBUG:

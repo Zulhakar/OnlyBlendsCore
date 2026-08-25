@@ -1,12 +1,12 @@
 import bpy
 from bpy.app.handlers import persistent
 from .operators import operator_classes
-from .node_tree import CustomNodeTree, GroupStringCollectionItem, GroupSocketCollectionItem
+from .node_tree import CustomNodeTree, GroupStringCollectionItem, GroupSocketCollectionItem, GroupInstanceState
 from .menus import (ConstantsMenu, InputMenu, GroupMenu, UtilMenu, RealtimeMenu, GeometryMenu, menu_draw)
 from .operators import NODE_OT_my_group_tab
 from ..base.global_data import Data
 # attention: the order matters
-import_classes_ = [GroupStringCollectionItem, GroupSocketCollectionItem, ConstantsMenu, InputMenu, GroupMenu, UtilMenu,
+import_classes_ = [GroupStringCollectionItem, GroupSocketCollectionItem, GroupInstanceState, ConstantsMenu, InputMenu, GroupMenu, UtilMenu,
                    RealtimeMenu, GeometryMenu, CustomNodeTree]
 addon_keymaps = []
 

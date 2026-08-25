@@ -1,4 +1,4 @@
-IS_DEBUG = False
+IS_DEBUG = True
 APP_NAME = "OnlyBlends.Core"
 APP_NAME_SHORT = "obc"
 OB_TREE_TYPE = 'OnlyBlendsCoreNodeTree'

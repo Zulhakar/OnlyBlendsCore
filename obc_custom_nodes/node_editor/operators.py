@@ -81,77 +81,88 @@ class MakeGroupOperator(bpy.types.Operator):
         new_tree, new_names_dict, new_input_node, new_output_node = create_child_node_tree(old_tree, selected)
 
         group_node = old_tree.nodes.new("GroupNodeCnt")
-        group_node.node_tree = new_tree
         group_node.target_tree = new_tree
-        group_node.parent_node_tree = bpy.data.node_groups[old_tree.name]
+        group_node.parent_node_tree = old_tree
         group_node.location = selected[0].location
 
         new_output_node.parent = group_node
-        # new_output_node["parent_group_node"] = bpy.props.PointerProperty(type=bpy.types.Node)
-        # new_output_node.parent_group_node = group_node
         new_tree.parent = old_tree
+        new_tree.group_node_name = group_node.name
         group_node.group_input_node = new_input_node.name
         group_node.group_output_node = new_output_node.name
 
         old_tree_new_link_list = []
         group_input_socket_index = 0
         group_output_socket_index = 0
+
+        # helper to ensure socket exists
+        def ensure_input(sock_type, sock_name):
+            nonlocal group_input_socket_index
+            if group_input_socket_index >= len(group_node.inputs):
+                group_node.inputs.new(sock_type, sock_name)
+            return group_node.inputs[group_input_socket_index]
+
+        def ensure_output(sock_type, sock_name):
+            nonlocal group_output_socket_index
+            if group_output_socket_index >= len(group_node.outputs):
+                group_node.outputs.new(sock_type, sock_name)
+            return group_node.outputs[group_output_socket_index]
+
         for link in old_tree.links:
             if link.from_node not in selected and link.to_node in selected:
-                new_sock = new_tree.interface.new_socket(link.to_socket.bl_label, socket_type=link.to_socket.bl_idname)
+                # create interface socket for the inner tree
+                new_tree.interface.new_socket(link.to_socket.bl_label, socket_type=link.to_socket.bl_idname)
 
-                # new_sock2 = group_node.inputs.new(link.to_socket.bl_idname, link.from_socket.bl_label)
-                old_tree_new_link_list.append((group_node.inputs[group_input_socket_index], link.from_socket))
-
-                #group_node.socket_update_disabled = True
-                #group_node.inputs[group_input_socket_index].input_value = link.from_socket.input_value
-                #new_input_node.outputs[group_input_socket_index].input_value = link.from_socket.input_value
-                #group_node.socket_update_disabled = False
+                # ensure group node input exists
+                grp_in = ensure_input(link.from_socket.bl_idname, link.from_socket.bl_label)
+                old_tree_new_link_list.append((grp_in, link.from_socket))
 
                 tmp_node = get_node_by_name(new_tree, new_names_dict[link.to_node.name])
+                new_tree.links.new(
+                    new_input_node.outputs[group_input_socket_index],
+                    tmp_node.inputs[get_index_of_socket(link.to_node, link.to_socket)[0]]
+                ).is_valid = True
 
-                new_tree.links.new(new_input_node.outputs[group_input_socket_index],
-                                   tmp_node.inputs[
-                                       get_index_of_socket(link.to_node, link.to_socket)[0]]).is_valid = True
                 new_input_node.outputs[group_input_socket_index].input_value = link.from_socket.input_value
-                tmp_node.inputs[get_index_of_socket(link.to_node, link.to_socket)[0]].input_value = link.from_socket.input_value
+                tmp_node.inputs[
+                    get_index_of_socket(link.to_node, link.to_socket)[0]].input_value = link.from_socket.input_value
 
                 group_input_socket_index += 1
 
-
             elif link.to_node not in selected and link.from_node in selected:
-                new_sock = new_tree.interface.new_socket(link.to_socket.bl_label, socket_type=link.to_socket.bl_idname,
-                                                         in_out="OUTPUT")
+                new_tree.interface.new_socket(link.to_socket.bl_label, socket_type=link.to_socket.bl_idname,
+                                              in_out="OUTPUT")
 
-                #new_sock2 = group_node.outputs.new(link.to_socket.bl_idname, link.to_socket.bl_label)
-                # new_link = old_tree.links.new(new_sock2, link.from_socket)
-                # new_link_list.append((link.to_socket, new_sock2))
-                old_tree_new_link_list.append((group_node.outputs[group_output_socket_index], link.to_socket))
-
+                grp_out = ensure_output(link.to_socket.bl_idname, link.to_socket.bl_label)
+                old_tree_new_link_list.append((grp_out, link.to_socket))
 
                 tmp_node = get_node_by_name(new_tree, new_names_dict[link.from_node.name])
-                new_tree.links.new(tmp_node.outputs[
-                                       get_index_of_socket(link.from_node, link.from_socket)[0]],
-                                   new_output_node.inputs[
-                                       get_index_of_socket(link.to_node, link.to_socket)[0]]).is_valid = True
+                new_tree.links.new(
+                    tmp_node.outputs[get_index_of_socket(link.from_node, link.from_socket)[0]],
+                    new_output_node.inputs[get_index_of_socket(link.to_node, link.to_socket)[0]]
+                ).is_valid = True
+
                 group_output_socket_index += 1
 
             elif link.to_node in selected and link.from_node in selected:
-                new_tree.links.new(get_node_by_name(new_tree, new_names_dict[link.from_node.name]).outputs[
-                                       get_index_of_socket(link.from_node, link.from_socket)[0]],
-                                   get_node_by_name(new_tree, new_names_dict[link.to_node.name]).inputs[
-                                       get_index_of_socket(link.to_node, link.to_socket)[0]]).is_valid = True
+                new_tree.links.new(
+                    get_node_by_name(new_tree, new_names_dict[link.from_node.name]).outputs[
+                        get_index_of_socket(link.from_node, link.from_socket)[0]],
+                    get_node_by_name(new_tree, new_names_dict[link.to_node.name]).inputs[
+                        get_index_of_socket(link.to_node, link.to_socket)[0]]
+                ).is_valid = True
 
         for link_tupel in old_tree_new_link_list:
             old_tree.links.new(link_tupel[0], link_tupel[1]).is_valid = True
 
+        # now sync shapes / interface
         change_socket_shape(new_input_node)
         change_socket_shape(new_output_node)
         change_socket_shape(group_node)
 
-        for input in new_output_node.inputs[:-1]:
-            input.group_node_tree_name = old_tree.name
-            input.group_node_name = group_node.name
+        for inp in new_output_node.inputs[:-1]:
+            inp.group_node_tree_name = old_tree.name
+            inp.group_node_name = group_node.name
 
         group_name_string = new_tree.group_node_list.add()
         group_name_string.value = group_node.name

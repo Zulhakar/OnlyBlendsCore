@@ -21,6 +21,8 @@ class NodeSocketCnt(NodeSocket):
     node_group_name: bpy.props.StringProperty()
     disable_socket_update: bpy.props.BoolProperty(default=False)
 
+    silent_updates = False
+
     def draw(self, context, layout, node, text):
         if self.is_constant:
             layout.alignment = 'EXPAND'
@@ -32,54 +34,34 @@ class NodeSocketCnt(NodeSocket):
                 layout.prop(self, "input_value", text=text)
 
     def update_prop(self):
-        if IS_DEBUG:
-            log_string = f"{self.node.bl_idname}-> Socket: {self.bl_idname} update_prop: [name: {self.name},  value: {self.input_value}]"
-            print(log_string)
-        if hasattr(self.node, "socket_update"):
-            self.node.socket_update(self)
+        if NodeSocketCnt.silent_updates:
+            return
+        if getattr(self, "_updating", False):
+            return
+        self._updating = True
+        try:
+            if hasattr(self.node, "socket_update"):
+                if getattr(self.node, "_updating", False):
+                    return
+                # node.socket_update itself decides whether to recompute
+                self.node._updating = True
+                try:
+                    self.node.socket_update(self)
+                finally:
+                    self.node._updating = False
 
-        # ----------------------------------------------------------
-        # inject update for build in nodes (Group Input/Output Node)
-        if isinstance(self.node, bpy.types.NodeGroupOutput):
-            self.__group_node_link_function()
+            if isinstance(self.node, bpy.types.NodeGroupOutput):
+                self.__group_node_link_function()
+        finally:
+            self._updating = False
 
     def __group_node_link_function(self):
-        if self.selected_node_group_name != "":
-            if not self.disable_socket_update:
-                node = self.node
-                selected_node_group = bpy.data.node_groups[self.selected_node_group_name]
-                node_group = bpy.data.node_groups[self.node_group_name]
-                not_triggerd_from_group_node = True
-                nodes = get_all_group_nodes(selected_node_group, node_group)
-                if len(nodes) == 1:
-                    sock_index = get_socket_index(node.inputs, self)
-                    nodes[0].outputs[sock_index].input_value = self.input_value
-                elif len(nodes) != 0:
-                    pass
+        # A NodeGroupOutput socket changed -> the shared tree's result changed.
+        # Re-evaluate every instance with its own inputs.
+        tree = self.node.id_data
+        if tree is not None and hasattr(tree, 'evaluate_all'):
+            tree.evaluate_all()
 
-     
-
-    def __group_node_link_function_old(self):
-        if self.selected_node_group_name != "":
-            if not self.disable_socket_update:
-                node = self.node
-                tree = bpy.data.node_groups[self.selected_node_group_name]
-                tree2 = bpy.data.node_groups[self.node_group_name]
-                not_triggerd_from_group_node = True
-                for node_ in tree.nodes:
-                    if node_.bl_idname == "GroupNodeCnt":
-                        if node_.target_tree == tree2:
-                            sock_index = get_socket_index(node.inputs, self)
-                            if node_.was_fired:
-                                not_triggerd_from_group_node = False
-                                node_.outputs[sock_index].input_value = self.input_value
-                            else:
-                                not_triggerd_from_group_node = False
-                                node_.was_fired_internal = True
-                                node_.outputs[sock_index].input_value = self.input_value
-                #                print("internal trigger")
-                # if not_triggerd_from_group_node:
-                #    print("internal update TODO")
 
     @classmethod
     def draw_color_simple(cls):

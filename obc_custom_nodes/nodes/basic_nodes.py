@@ -20,6 +20,10 @@ class NodeCnt:
     def poll(cls, ntree):
         return ntree.bl_idname in VALID_TREES
 
+    def recompute(self):
+        """Recompute this node's outputs from its current inputs.
+        Override in subclasses that actually compute something."""
+        pass
 
     def copy(self, node):
         self.log("copy")
@@ -58,10 +62,10 @@ class NodeCnt:
         change_socket_shape(self)
 
     def socket_update(self, socket):
+        if getattr(self, 'socket_update_disabled', False):
+            return
         self.log("socket_update")
-        if IS_DEBUG:
-            if self.socket_update_disabled:
-                print("socket_update_disabled")
+
 
     def socket_value_update(self, context):
         self.log("socket_value_update")
