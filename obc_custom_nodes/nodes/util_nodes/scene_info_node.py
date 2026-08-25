@@ -22,14 +22,19 @@ class SceneInfoNodeCnt(ConstantNodeCnt):
         self.subscribe_msg_bus()
         super().init(context)
 
+    def recompute(self):
+        # called by the tree's topological evaluator
+        self.outputs[0].input_value = bpy.context.scene.frame_current
+        self.outputs[1].input_value = bpy.context.scene.render.fps
+
     def subscribe_msg_bus(self):
         Data.uuid_handler[self.uuid_msg_bus] = self
         bpy.app.handlers.frame_change_pre.append(Data.uuid_handler[self.uuid_msg_bus].frame_change_handler)
         msg_bus_obj = object()
         Data.uuid_message_bus[self.uuid_msg_bus] = msg_bus_obj
         bpy.msgbus.subscribe_rna(
-            key= bpy.context.scene.render.path_resolve("fps", False),
-            #key=(bpy.types.Scene, "frame_current"),
+            key=bpy.context.scene.render.path_resolve("fps", False),
+            # key=(bpy.types.Scene, "frame_current"),
             owner=msg_bus_obj,
             args=(self,),
             notify=update_fps,

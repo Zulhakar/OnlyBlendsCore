@@ -14,28 +14,6 @@ class RealtimeValueNode(ConstantNodeCnt):
         , default=CntSocketTypes.Float
         , update=lambda self, context: self.input_update())
 
-
-    def input_update(self):
-        output_socket = self.outputs[0]
-        for socket in self.outputs:
-            socket.hide = True
-            if socket.bl_idname == self.input_type:
-                output_socket = socket
-                output_socket.hide = False
-        # if self.input_type == CntSocketTypes.Bool:
-        #    out_sock.is_constant = True
-        for socket in self.inputs:
-            if socket.bl_idname == self.input_type and (socket.name == "True"):
-                socket.hide = False
-                if self.inputs[0].input_value and socket.name == "True":
-                    output_socket.input_value = socket.input_value
-            else:
-                if socket.name == "True":
-                    socket.hide = True
-
-    def draw_buttons(self, context, layout):
-        layout.prop(self, "input_type", text="")
-
     def init(self, context):
         self.inputs.new(CntSocketTypes.Bool, "Switch")
         for socket_type in cnt_sockets_list:
@@ -47,6 +25,42 @@ class RealtimeValueNode(ConstantNodeCnt):
                 s1.hide = True
                 out.hide = True
         super().init(context)
+
+    def _compute(self):
+        output_socket = None
+        true_sock = None
+        for socket in self.outputs:
+            if socket.bl_idname == self.input_type:
+                output_socket = socket
+        for socket in self.inputs:
+            if socket.bl_idname == self.input_type and socket.name == "True":
+                true_sock = socket
+        if output_socket is None:
+            return
+        if self.inputs[0].input_value and true_sock is not None:
+            output_socket.input_value = true_sock.input_value
+        # else: intentionally no write -> stores the last value
+
+    def recompute(self):
+        self._compute()
+
+    def input_update(self):
+        output_socket = self.outputs[0]
+        for socket in self.outputs:
+            socket.hide = True
+            if socket.bl_idname == self.input_type:
+                output_socket = socket
+                output_socket.hide = False
+        for socket in self.inputs:
+            if socket.bl_idname == self.input_type and socket.name == "True":
+                socket.hide = False
+            else:
+                if socket.name == "True":
+                    socket.hide = True
+        self._compute()
+
+    def draw_buttons(self, context, layout):
+        layout.prop(self, "input_type", text="")
 
     def socket_update(self, socket):
         if not socket.is_output:

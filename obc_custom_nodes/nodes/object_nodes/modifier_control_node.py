@@ -1,7 +1,6 @@
 import bpy
 from ..basic_nodes import ConstantNodeCnt
 from ...base.global_data import Data
-
 import uuid
 
 
@@ -102,6 +101,35 @@ class ModifierControlNode(ConstantNodeCnt):
             #     else:
             #         self.outputs.new(socket.bl_idname, socket.name)
 
+    def _push_to_modifier(self):
+        if not self.obj or not self.node_tree:
+            return
+        modifier = self.obj.modifiers[self.modifier_name]
+        for socket in self.inputs:
+            if hasattr(socket, "input_value"):
+                if bpy.app.version < (5, 2, 0):
+                    modifier[socket.name] = socket.input_value
+                else:
+                    modifier.properties.inputs[socket.name]["value"] = socket.input_value
+            elif hasattr(socket, "default_value"):
+                if bpy.app.version < (5, 2, 0):
+                    modifier[socket.name] = socket.default_value
+                else:
+                    modifier.properties.inputs[socket.name]["value"] = socket.default_value
+        self.node_tree.interface.active.hide_in_modifier = self.node_tree.interface.active.hide_in_modifier
+        for i, out_socket in enumerate(self.outputs):
+            if out_socket.bl_idname == 'NodeSocketObjectCnt' and i == 0:
+                self.outputs[0].input_value = self.obj
+
+    def init(self, context):
+        self.node_tree = None
+        self.uuid_msg_bus = str(uuid.uuid4()).replace("-", "")
+        Data.uuid_message_bus[self.uuid_msg_bus] = object()
+        super().init(context)
+
+    def recompute(self):
+        self._push_to_modifier()
+
     def update_node_tree(self, context):
         if self.node_tree:
             self.obj, self.modifier_name = find_objects_of_node_group(self.node_tree.name)
@@ -132,12 +160,6 @@ class ModifierControlNode(ConstantNodeCnt):
                 options={'PERSISTENT'}
             )
 
-    def init(self, context):
-        self.node_tree = None
-        self.uuid_msg_bus = str(uuid.uuid4()).replace("-", "")
-        Data.uuid_message_bus[self.uuid_msg_bus] = object()
-        super().init(context)
-
     def free(self):
         super().free()
         if self.uuid_msg_bus in Data.uuid_message_bus.keys():
@@ -150,28 +172,7 @@ class ModifierControlNode(ConstantNodeCnt):
     def socket_update(self, socket):
         super().socket_update(socket)
         if not socket.is_output:
-            modifier = self.obj.modifiers[self.modifier_name]
-
-            if hasattr(socket, "input_value"):
-                if bpy.app.version < (5, 2, 0):
-                    modifier[socket.name] = socket.input_value
-                else:
-                    modifier.properties.inputs[socket.name]["value"] = socket.input_value
-            elif hasattr(socket, "default_value"):
-                if bpy.app.version < (5, 2, 0):
-                    modifier[socket.name] = socket.default_value
-                else:
-                    modifier.properties.inputs[socket.name]["value"] = socket.default_value
-
-            self.node_tree.interface.active.hide_in_modifier = self.node_tree.interface.active.hide_in_modifier
-
-            for i, out_socket in enumerate(self.outputs):
-                if out_socket.bl_idname == 'NodeSocketObjectCnt' and i == 0:
-                    self.outputs[0].input_value = self.obj
-                else:
-                    # I have no solution to get the other output sockets ATM
-                    pass
-
+            self._push_to_modifier()
         else:
             if hasattr(socket, "input_value"):
                 for link in socket.links:
