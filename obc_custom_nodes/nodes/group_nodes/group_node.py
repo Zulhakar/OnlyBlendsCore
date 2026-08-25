@@ -90,6 +90,13 @@ class GroupNodeCnt(NodeCnt, bpy.types.NodeCustomGroup):
         if not self.instance_id:
             self.instance_id = f"{self.name}_{id(self)}"
 
+    def recompute(self):
+        """Called by the parent tree's topological evaluator.
+        Evaluates this group's target tree for THIS instance only."""
+        if self.target_tree and hasattr(self.target_tree, 'evaluate_instance'):
+            self.target_tree.evaluate_instance(self)
+
+
     def copy(self, node):
         super().copy(node)
         # keep the same template tree, only new instance id

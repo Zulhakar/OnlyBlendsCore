@@ -71,6 +71,8 @@ class CustomNodeTree(bpy.types.NodeTree):
     def evaluate_instance(self, group_node):
         from ..sockets.basic_sockets import NodeSocketCnt
 
+        # save/restore so nested evaluations don't turn off the outer silent mode
+        prev_silent = NodeSocketCnt.silent_updates
         NodeSocketCnt.silent_updates = True
         try:
             # 1) push THIS instance's inputs into the shared NodeGroupInput
@@ -90,9 +92,7 @@ class CustomNodeTree(bpy.types.NodeTree):
                 if hasattr(node, 'recompute'):
                     node.recompute()
 
-            # 3) read results from what is LINKED INTO the NodeGroupOutput.
-            #    (Do NOT read the NodeGroupOutput socket itself - when we are
-            #    nested inside its update chain it still holds the stale value.)
+            # 3) read results from what is LINKED INTO the NodeGroupOutput
             results = []
             for node in self.nodes:
                 if node.bl_idname != 'NodeGroupOutput':
@@ -105,11 +105,9 @@ class CustomNodeTree(bpy.types.NodeTree):
                     else:
                         results.append(inp.input_value)
         finally:
-            NodeSocketCnt.silent_updates = False
+            NodeSocketCnt.silent_updates = prev_silent   # <-- was: = False
 
         # 4) write results to THIS owner only, then propagate in the parent tree
-        #    (manually, because GroupNodeCnt.socket_update may early-return
-        #    if this owner's own _updating flag is set)
         for i, out_sock in enumerate(group_node.outputs):
             if i >= len(results):
                 break
