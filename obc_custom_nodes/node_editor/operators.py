@@ -20,15 +20,26 @@ def create_child_node_tree(old_tree, selected):
         new = new_tree.nodes.new(node.bl_idname)
         new.location = node.location
 
-        # for i, inp_ in enumerate(node.inputs):
-        #     new.inputs[i].input_value = inp_.input_value
-
         new.copy(node)
         if new.bl_idname == "GroupNodeCnt":
             new.target_tree = node.target_tree
+
+
+        for i, inp_ in enumerate(node.inputs):
+            if i < len(new.inputs):
+                try:
+                    new.inputs[i].input_value = inp_.input_value
+                except Exception:
+                    pass
+        for i, out_ in enumerate(node.outputs):
+            if i < len(new.outputs):
+                try:
+                    new.outputs[i].input_value = out_.input_value
+                except Exception:
+                    pass
+
         min_x, min_y = min(new.location.x, min_x), min(new.location.y, min_y)
         max_x, max_y = max(new.location.x, max_x), max(new.location.y, max_y)
-        # mapping[node] = new
         new_names[node.name] = new.name
     if selected:
         input_node.location = (min_x - 200, min_y)
@@ -92,6 +103,7 @@ class MakeGroupOperator(bpy.types.Operator):
         group_node.group_output_node = new_output_node.name
 
         old_tree_new_link_list = []
+        group_output_values = []
         group_input_socket_index = 0
         group_output_socket_index = 0
 
@@ -129,17 +141,27 @@ class MakeGroupOperator(bpy.types.Operator):
 
                 group_input_socket_index += 1
 
+
             elif link.to_node not in selected and link.from_node in selected:
+
                 new_tree.interface.new_socket(link.to_socket.bl_label, socket_type=link.to_socket.bl_idname,
+
                                               in_out="OUTPUT")
 
                 grp_out = ensure_output(link.to_socket.bl_idname, link.to_socket.bl_label)
+
                 old_tree_new_link_list.append((grp_out, link.to_socket))
 
+                group_output_values.append((grp_out, link.from_socket.input_value))  # <-- new
+
                 tmp_node = get_node_by_name(new_tree, new_names_dict[link.from_node.name])
+
                 new_tree.links.new(
+
                     tmp_node.outputs[get_index_of_socket(link.from_node, link.from_socket)[0]],
+
                     new_output_node.inputs[get_index_of_socket(link.to_node, link.to_socket)[0]]
+
                 ).is_valid = True
 
                 group_output_socket_index += 1
@@ -159,6 +181,12 @@ class MakeGroupOperator(bpy.types.Operator):
         change_socket_shape(new_input_node)
         change_socket_shape(new_output_node)
         change_socket_shape(group_node)
+
+        for grp_out, value in group_output_values:
+            grp_out.input_value = value
+
+        for link_tupel in old_tree_new_link_list:
+            old_tree.links.new(link_tupel[0], link_tupel[1]).is_valid = True
 
         for inp in new_output_node.inputs[:-1]:
             inp.group_node_tree_name = old_tree.name
