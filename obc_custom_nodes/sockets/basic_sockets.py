@@ -21,6 +21,8 @@ class NodeSocketCnt(NodeSocket):
     node_group_name: bpy.props.StringProperty()
     disable_socket_update: bpy.props.BoolProperty(default=False)
 
+    silent_updates = False
+
     def draw(self, context, layout, node, text):
         if self.is_constant:
             layout.alignment = 'EXPAND'
@@ -32,6 +34,8 @@ class NodeSocketCnt(NodeSocket):
                 layout.prop(self, "input_value", text=text)
 
     def update_prop(self):
+        if NodeSocketCnt.silent_updates:
+            return
         if getattr(self, "_updating", False):
             return
         self._updating = True
@@ -52,53 +56,12 @@ class NodeSocketCnt(NodeSocket):
             self._updating = False
 
     def __group_node_link_function(self):
-        if self.selected_node_group_name == "":
-            return
-        selected_node_group = bpy.data.node_groups[self.selected_node_group_name]
-        node_group = bpy.data.node_groups[self.node_group_name]
-        owners = get_all_group_nodes(selected_node_group, node_group)
-        if not owners:
-            return
+        # A NodeGroupOutput socket changed -> the shared tree's result changed.
+        # Re-evaluate every instance with its own inputs.
+        tree = self.node.id_data
+        if tree is not None and hasattr(tree, 'evaluate_all'):
+            tree.evaluate_all()
 
-        sock_index = get_socket_index(self.node.inputs, self)
-        if sock_index is None:
-            return
-
-        active_name = getattr(node_group, "active_group_node_name", "")
-        origin_is_push = getattr(node_group, "update_origin_is_input_push", False)
-
-        if origin_is_push and active_name:
-            # input push -> only the active instance
-            for owner in owners:
-                if owner.name == active_name:
-                    owner.outputs[sock_index].input_value = self.input_value
-                    return
-            return
-
-        # internal change -> re-evaluate per instance with its own inputs
-        if getattr(node_group, "re_evaluating2", False):
-            return
-        node_group.re_evaluating2 = True
-        try:
-            for owner in owners:
-                # push this owner's inputs into the shared tree
-                for n in node_group.nodes:
-                    if n.bl_idname != 'NodeGroupInput':
-                        continue
-                    for i, inp_sock in enumerate(owner.inputs):
-                        if i >= len(n.outputs):
-                            continue
-                        inner_out = n.outputs[i]
-                        inner_out.input_value = inp_sock.input_value
-                        for link in inner_out.links:
-                            link.to_socket.input_value = link.from_socket.input_value
-                # one evaluation per owner
-                node_group.update()
-                # after update, write the result back to this owner only
-                # the NodeGroupOutput socket we are in is the one that just evaluated
-                owner.outputs[sock_index].input_value = self.input_value
-        finally:
-            node_group.re_evaluating2 = False
 
     @classmethod
     def draw_color_simple(cls):

@@ -26,40 +26,50 @@ class MathNodeCnt(ConstantNodeCnt):
             return
         self.socket_update_disabled = True
         try:
-            if len(self.outputs) == 0:
-                return
-            self.outputs[0].hide = False
-            self.outputs[1].hide = True
-            self.inputs[0].name = "Value"
-            self.inputs[1].name = "Value"
-
-            if self.operation == "ADD":
-                self.outputs[0].input_value = (self.inputs[0].input_value + self.inputs[1].input_value)
-            elif self.operation == "SUB":
-                self.outputs[0].input_value = (self.inputs[0].input_value - self.inputs[1].input_value)
-            elif self.operation == "MUL":
-                self.outputs[0].input_value = (self.inputs[0].input_value * self.inputs[1].input_value)
-            elif self.operation == "DIV":
-                if self.inputs[1].input_value == 0.0:
-                    self.outputs[0].input_value = 0.0
-                else:
-                    self.outputs[0].input_value = (self.inputs[0].input_value / self.inputs[1].input_value)
-            elif self.operation == "GREATER":
-                self.outputs[0].hide = True
-                self.outputs[1].hide = False
-                self.inputs[1].name = "Threshold"
-                self.outputs[1].input_value = (self.inputs[0].input_value > self.inputs[1].input_value)
-            elif self.operation == "LESS":
-                self.outputs[0].hide = True
-                self.outputs[1].hide = False
-                self.inputs[1].name = "Threshold"
-                self.outputs[1].input_value = (self.inputs[0].input_value < self.inputs[1].input_value)
-            elif self.operation == "EQUAL":
-                self.outputs[0].hide = True
-                self.outputs[1].hide = False
-                self.outputs[1].input_value = (self.inputs[0].input_value == self.inputs[1].input_value)
+            self._compute()
         finally:
             self.socket_update_disabled = False
+
+    def recompute(self):
+        # called by the tree evaluator; must run even if a socket_update
+        # chain is already in progress -> bypass the guard
+        self._compute()
+
+    def _compute(self):
+        if len(self.outputs) == 0:
+            return
+        self.outputs[0].hide = False
+        self.outputs[1].hide = True
+        self.inputs[0].name = "Value"
+        self.inputs[1].name = "Value"
+
+        if self.operation == "ADD":
+            self.outputs[0].input_value = (self.inputs[0].input_value + self.inputs[1].input_value)
+        elif self.operation == "SUB":
+            self.outputs[0].input_value = (self.inputs[0].input_value - self.inputs[1].input_value)
+        elif self.operation == "MUL":
+            self.outputs[0].input_value = (self.inputs[0].input_value * self.inputs[1].input_value)
+        elif self.operation == "DIV":
+            if self.inputs[1].input_value == 0.0:
+                self.outputs[0].input_value = 0.0
+            else:
+                self.outputs[0].input_value = (self.inputs[0].input_value / self.inputs[1].input_value)
+        elif self.operation == "GREATER":
+            self.outputs[0].hide = True
+            self.outputs[1].hide = False
+            self.inputs[1].name = "Threshold"
+            self.outputs[1].input_value = (self.inputs[0].input_value > self.inputs[1].input_value)
+        elif self.operation == "LESS":
+            self.outputs[0].hide = True
+            self.outputs[1].hide = False
+            self.inputs[1].name = "Threshold"
+            self.outputs[1].input_value = (self.inputs[0].input_value < self.inputs[1].input_value)
+        elif self.operation == "EQUAL":
+            self.outputs[0].hide = True
+            self.outputs[1].hide = False
+            self.outputs[1].input_value = (self.inputs[0].input_value == self.inputs[1].input_value)
+
+
 
     def socket_update(self, socket):
         if not socket.is_output:

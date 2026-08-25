@@ -111,8 +111,9 @@ class GroupNodeCnt(NodeCnt, bpy.types.NodeCustomGroup):
                 for link in socket.links:
                     link.to_socket.input_value = socket.input_value
                 return
-            # per-instance evaluation, no tree duplication
-            self.target_tree.update_instance(self)
+            # an instance input changed -> re-evaluate all instances
+            if hasattr(self.target_tree, 'evaluate_all'):
+                self.target_tree.evaluate_all()
         finally:
             self._updating = False
 

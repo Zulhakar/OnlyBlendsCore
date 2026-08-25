@@ -20,6 +20,10 @@ class NodeCnt:
     def poll(cls, ntree):
         return ntree.bl_idname in VALID_TREES
 
+    def recompute(self):
+        """Recompute this node's outputs from its current inputs.
+        Override in subclasses that actually compute something."""
+        pass
 
     def copy(self, node):
         self.log("copy")

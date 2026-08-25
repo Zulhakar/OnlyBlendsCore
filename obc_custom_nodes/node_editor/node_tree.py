@@ -47,6 +47,87 @@ class CustomNodeTree(bpy.types.NodeTree):
     was_fired : bpy.props.BoolProperty(default=False)
     re_evaluating2: bpy.props.BoolProperty(default=False)
 
+    def _topological_order(self):
+        """Nodes in dependency order (sources before consumers)."""
+        nodes = [n for n in self.nodes
+                 if n.bl_idname not in ("NodeGroupInput", "NodeGroupOutput")]
+        deps = {n: set() for n in nodes}
+        for link in self.links:
+            if link.from_node in deps and link.to_node in deps:
+                deps[link.to_node].add(link.from_node)
+
+        ordered, remaining = [], dict(deps)
+        while remaining:
+            ready = [n for n, d in remaining.items()
+                     if all(dep not in remaining for dep in d)]
+            if not ready:  # cycle safety
+                ordered.extend(remaining.keys())
+                break
+            for n in ready:
+                ordered.append(n)
+                del remaining[n]
+        return ordered
+
+    def evaluate_instance(self, group_node):
+        from ..sockets.basic_sockets import NodeSocketCnt
+
+        NodeSocketCnt.silent_updates = True
+        try:
+            # 1) push THIS instance's inputs into the shared NodeGroupInput
+            for node in self.nodes:
+                if node.bl_idname != 'NodeGroupInput':
+                    continue
+                for i, inp in enumerate(group_node.inputs):
+                    if i >= len(node.outputs):
+                        continue
+                    node.outputs[i].input_value = inp.input_value
+
+            # 2) recompute every node in dependency order
+            for node in self._topological_order():
+                for inp_sock in node.inputs:
+                    if inp_sock.is_linked:
+                        inp_sock.input_value = inp_sock.links[0].from_socket.input_value
+                if hasattr(node, 'recompute'):
+                    node.recompute()
+
+            # 3) read results from what is LINKED INTO the NodeGroupOutput.
+            #    (Do NOT read the NodeGroupOutput socket itself - when we are
+            #    nested inside its update chain it still holds the stale value.)
+            results = []
+            for node in self.nodes:
+                if node.bl_idname != 'NodeGroupOutput':
+                    continue
+                for inp in node.inputs:
+                    if inp.bl_idname == "NodeSocketVirtual":
+                        continue
+                    if inp.is_linked:
+                        results.append(inp.links[0].from_socket.input_value)
+                    else:
+                        results.append(inp.input_value)
+        finally:
+            NodeSocketCnt.silent_updates = False
+
+        # 4) write results to THIS owner only, then propagate in the parent tree
+        #    (manually, because GroupNodeCnt.socket_update may early-return
+        #    if this owner's own _updating flag is set)
+        for i, out_sock in enumerate(group_node.outputs):
+            if i >= len(results):
+                break
+            out_sock.input_value = results[i]
+            for link in out_sock.links:
+                link.to_socket.input_value = link.from_socket.input_value
+
+    def evaluate_all(self):
+        """Re-evaluate every owner instance of this shared tree."""
+        if getattr(self, '_evaluating', False):
+            return
+        self._evaluating = True
+        try:
+            for owner in self.get_parent_group_nodes():
+                self.evaluate_instance(owner)
+        finally:
+            self._evaluating = False
+
     def get_or_create_instance(self, group_node):
         for inst in self.group_instances:
             if inst.group_node_name == group_node.name and inst.instance_id == group_node.instance_id:
@@ -55,56 +136,6 @@ class CustomNodeTree(bpy.types.NodeTree):
         inst.group_node_name = group_node.name
         inst.instance_id = group_node.instance_id
         return inst
-
-    def _evaluate_for_instance(self, group_node):
-        # snapshot shared sockets we will touch
-        snapshot = {}
-        for node in self.nodes:
-            if node.bl_idname == 'NodeGroupInput':
-                for out in node.outputs:
-                    if out.bl_idname != "NodeSocketVirtual":
-                        snapshot[(node, out)] = out.input_value
-            if node.bl_idname == 'NodeGroupOutput':
-                for inp in node.inputs:
-                    if inp.bl_idname != "NodeSocketVirtual":
-                        snapshot[(node, inp)] = inp.input_value
-
-        try:
-            # push this instance's inputs only
-            for node in self.nodes:
-                if node.bl_idname != 'NodeGroupInput':
-                    continue
-                for i, inp in enumerate(group_node.inputs):
-                    if i >= len(node.outputs): continue
-                    inner_out = node.outputs[i]
-                    inner_out.input_value = inp.input_value
-                    for link in inner_out.links:
-                        link.to_socket.input_value = link.from_socket.input_value
-
-            # evaluate
-            self.validate_links()
-            self.handle_socks(self._get_interface_sockets(True), True)
-            self.handle_socks(self._get_interface_sockets(False), False)
-
-            # pull outputs back to this instance only
-            for node in self.nodes:
-                if node.bl_idname != 'NodeGroupOutput':
-                    continue
-                for i, out_sock in enumerate(node.inputs):
-                    if i >= len(group_node.outputs): continue
-                    group_node.outputs[i].input_value = out_sock.input_value
-                    for link in group_node.outputs[i].links:
-                        link.to_socket.input_value = link.from_socket.input_value
-        finally:
-            # restore shared tree to its previous state
-            for (node, sock), val in snapshot.items():
-                sock.input_value = val
-
-    def update_instance(self, group_node):
-        inst = self.get_or_create_instance(group_node)
-        inst.dirty = True
-        self._evaluate_for_instance(group_node)
-        inst.dirty = False
 
     def get_parent_group_nodes(self):
         nodes = []
@@ -148,11 +179,6 @@ class CustomNodeTree(bpy.types.NodeTree):
         self.handle_socks(self._get_interface_sockets(True), True)
         self.handle_socks(self._get_interface_sockets(False), False)
 
-        # push to all owners individually
-        for owner in self.get_parent_group_nodes():
-            inst = self.get_or_create_instance(owner)
-            if inst.dirty:
-                self._evaluate_for_instance(owner, inst)
 
     def validate_links(self):
         for link in list(self.links):
