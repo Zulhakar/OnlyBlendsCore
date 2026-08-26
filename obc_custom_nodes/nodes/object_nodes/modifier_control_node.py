@@ -61,24 +61,24 @@ class ModifierControlNode(ConstantNodeCnt):
         group_input = get_group_input(self.node_tree)[0]
         self.inputs.clear()
         for i, socket in enumerate(group_input.outputs):
+            # skip virtual / non-controllable sockets (e.g. the Geometry input)
+            if socket.bl_idname in ('NodeSocketVirtual', 'NodeSocketGeometry',
+                                    'NodeSocketMatrix', 'NodeSocketClosure',
+                                    'NodeSocketBundle'):
+                continue
             if socket.bl_idname == 'NodeSocketFloat':
-                inp = self.inputs.new('NodeSocketFloatCnt', socket.identifier)
+                self.inputs.new('NodeSocketFloatCnt', socket.name)
             elif socket.bl_idname == 'NodeSocketInt':
-                self.inputs.new('NodeSocketIntCnt', socket.identifier)
+                self.inputs.new('NodeSocketIntCnt', socket.name)
             elif socket.bl_idname == 'NodeSocketBool':
-                self.inputs.new('NodeSocketBoolCnt', socket.identifier)
+                self.inputs.new('NodeSocketBoolCnt', socket.name)
             elif socket.bl_idname == 'NodeSocketString':
-                self.inputs.new('NodeSocketStringCnt', socket.identifier)
+                self.inputs.new('NodeSocketStringCnt', socket.name)
             elif socket.bl_idname == 'NodeSocketObject':
-                self.inputs.new('NodeSocketObjectCnt', socket.identifier)
+                self.inputs.new('NodeSocketObjectCnt', socket.name)
             else:
                 # TODO test different blender versions
-                if (socket.bl_idname != 'NodeSocketGeometry' and socket.bl_idname != 'NodeSocketMatrix'
-                        and socket.bl_idname != 'NodeSocketClosure' and socket.bl_idname != 'NodeSocketVirtual'
-                        and socket.bl_idname != 'NodeSocketBundle'):
-                    self.inputs.new(socket.bl_idname, socket.identifier)
-                else:
-                    self.inputs.new(socket.bl_idname, socket.identifier)
+                self.inputs.new(socket.bl_idname, socket.name)
 
     def __add_socket_outputs(self, modifier):
         group_output = get_group_output(self.node_tree)[0]
@@ -105,18 +105,38 @@ class ModifierControlNode(ConstantNodeCnt):
         if not self.obj or not self.node_tree:
             return
         modifier = self.obj.modifiers[self.modifier_name]
+
+        name_to_id = {}
+        for item in self.node_tree.interface.items_tree:
+            if getattr(item, "in_out", None) == "INPUT":
+                name_to_id[item.name] = item.identifier
+
+        changed = False
         for socket in self.inputs:
-            if hasattr(socket, "input_value"):
+            identifier = name_to_id.get(socket.name)
+            if identifier is None:
+                continue
+            try:
                 if bpy.app.version < (5, 2, 0):
-                    modifier[socket.name] = socket.input_value
+                    if hasattr(socket, "input_value"):
+                        modifier[identifier] = socket.input_value
+                    elif hasattr(socket, "default_value"):
+                        modifier[identifier] = socket.default_value
+                    changed = True
                 else:
-                    modifier.properties.inputs[socket.name]["value"] = socket.input_value
-            elif hasattr(socket, "default_value"):
-                if bpy.app.version < (5, 2, 0):
-                    modifier[socket.name] = socket.default_value
-                else:
-                    modifier.properties.inputs[socket.name]["value"] = socket.default_value
-        self.node_tree.interface.active.hide_in_modifier = self.node_tree.interface.active.hide_in_modifier
+                    prop = getattr(modifier.properties.inputs, identifier)
+                    if hasattr(socket, "input_value"):
+                        prop.value = socket.input_value
+                    elif hasattr(socket, "default_value"):
+                        prop.value = socket.default_value
+                    changed = True
+            except Exception as e:
+                print(e)
+
+        if changed:
+            self.obj.update_tag()
+            # self.node_tree.interface.active.hide_in_modifier = self.node_tree.interface.active.hide_in_modifier
+
         for i, out_socket in enumerate(self.outputs):
             if out_socket.bl_idname == 'NodeSocketObjectCnt' and i == 0:
                 self.outputs[0].input_value = self.obj
@@ -131,6 +151,7 @@ class ModifierControlNode(ConstantNodeCnt):
         self._push_to_modifier()
 
     def update_node_tree(self, context):
+        print("update_node_tree")
         if self.node_tree:
             self.obj, self.modifier_name = find_objects_of_node_group(self.node_tree.name)
             modifier = self.obj.modifiers[self.modifier_name]
