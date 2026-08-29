@@ -76,6 +76,9 @@ class ModifierControlNode(ConstantNodeCnt):
                 self.inputs.new('NodeSocketStringCnt', socket.name)
             elif socket.bl_idname == 'NodeSocketObject':
                 self.inputs.new('NodeSocketObjectCnt', socket.name)
+            elif socket.bl_idname == 'NodeSocketMenu':
+                menu_sock = self.inputs.new('NodeSocketStringCnt', socket.name)
+                menu_sock.input_value = socket.default_value
             else:
                 # TODO test different blender versions
                 self.inputs.new(socket.bl_idname, socket.name)
