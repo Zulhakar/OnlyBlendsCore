@@ -4,6 +4,10 @@ from .operators import operator_classes
 from .node_tree import CustomNodeTree, GroupStringCollectionItem, GroupSocketCollectionItem, GroupInstanceState
 from .menus import (ConstantsMenu, InputMenu, GroupMenu, UtilMenu, RealtimeMenu, GeometryMenu, menu_draw)
 from .operators import NODE_OT_my_group_tab
+from ..nodes.object_nodes.modifier_control_node import (
+    register_depsgraph_handler, unregister_depsgraph_handler
+)
+
 from ..base.global_data import Data
 # attention: the order matters
 import_classes_ = [GroupStringCollectionItem, GroupSocketCollectionItem, GroupInstanceState, ConstantsMenu, InputMenu, GroupMenu, UtilMenu,
@@ -46,6 +50,7 @@ def register():
     for cls in import_classes_:
         bpy.utils.register_class(cls)
     bpy.app.handlers.load_post.append(load_blend_file_job)
+    register_depsgraph_handler()
 
 def unregister():
     bpy.app.handlers.load_post.remove(load_blend_file_job)
@@ -57,6 +62,7 @@ def unregister():
     #for key in keys:
     #    bpy.app.handlers.frame_change_pre.remove(Data.uuid_handler[key].frame_change_handler)
     #    del Data.uuid_handler[key]
+    unregister_depsgraph_handler()
     unregister_keymap()
     for cls in reversed(import_classes_):
         try:

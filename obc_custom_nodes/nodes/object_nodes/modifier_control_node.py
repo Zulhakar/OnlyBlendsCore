@@ -1,9 +1,84 @@
 import bpy
+from bpy.app.handlers import persistent
+import uuid
 from ..basic_nodes import ConstantNodeCnt
 from ...base.global_data import Data
-import uuid
+from ...sockets.basic_sockets import NodeSocketCnt
 
 
+_active_nodes = set()
+_depsgraph_syncing = False
+_initial_scan_done = False
+
+
+def _register_node(node):
+    _active_nodes.add(node)
+
+
+def _unregister_node(node):
+    _active_nodes.discard(node)
+
+
+def _rescan_active_nodes():
+    """(Re)build the registry from the current blend file."""
+    _active_nodes.clear()
+    for tree in bpy.data.node_groups:
+        for node in tree.nodes:
+            if node.bl_idname == "ModifierControlNode":
+                if node.obj and node.modifier_name and node.node_tree:
+                    _active_nodes.add(node)
+
+
+def _depsgraph_sync():
+    global _depsgraph_syncing, _initial_scan_done
+    if _depsgraph_syncing:
+        return
+    # bpy.data is a restricted dummy during register(), so the first scan is
+    # deferred to the first depsgraph update (by then bpy.data is available).
+    if not _initial_scan_done:
+        _rescan_active_nodes()
+        _initial_scan_done = True
+    if not _active_nodes:          # gate 1: nothing bound -> return immediately
+        return
+    _depsgraph_syncing = True
+    try:
+        for node in list(_active_nodes):
+            try:
+                if node._modifier_differs():   # gate 2: only act when values differ
+                    node._pull_from_modifier()
+            except Exception:
+                pass
+    finally:
+        _depsgraph_syncing = False
+
+
+@persistent
+def _depsgraph_sync_handler(dg):
+    _depsgraph_sync()
+
+
+@persistent
+def _on_file_load(dg):
+    _rescan_active_nodes()
+
+
+def register_depsgraph_handler():
+    if _depsgraph_sync_handler not in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.append(_depsgraph_sync_handler)
+    if _on_file_load not in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.append(_on_file_load)
+    # NOTE: no scan here – bpy.data is restricted during register().
+    # The first scan is deferred to the first depsgraph update (see above).
+
+
+def unregister_depsgraph_handler():
+    global _initial_scan_done
+    if _depsgraph_sync_handler in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.remove(_depsgraph_sync_handler)
+    if _on_file_load in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.remove(_on_file_load)
+    _active_nodes.clear()
+    _initial_scan_done = False
 def node_tree_interface_changed(*args):
     self = args[0]
     if self:
@@ -55,6 +130,113 @@ class ModifierControlNode(ConstantNodeCnt):
     modifier_name: bpy.props.StringProperty()
 
     uuid_msg_bus: bpy.props.StringProperty()
+
+    def _get_name_to_id(self):
+        name_to_id = {}
+        if self.node_tree:
+            for item in self.node_tree.interface.items_tree:
+                if getattr(item, "in_out", None) == "INPUT":
+                    name_to_id[item.name] = item.identifier
+        return name_to_id
+
+    def _init_inputs_from_modifier(self):
+        """Initialization: read the modifier's current input values into the sockets."""
+        if not self.obj or not self.node_tree:
+            return
+        modifier = self.obj.modifiers.get(self.modifier_name)
+        if modifier is None:
+            return
+        name_to_id = self._get_name_to_id()
+        prev_silent = NodeSocketCnt.silent_updates
+        NodeSocketCnt.silent_updates = True
+        try:
+            for socket in self.inputs:
+                identifier = name_to_id.get(socket.name)
+                if identifier is None:
+                    continue
+                try:
+                    if bpy.app.version < (5, 2, 0):
+                        val = modifier[identifier]
+                    else:
+                        val = getattr(modifier.properties.inputs, identifier).value
+                except Exception:
+                    continue
+                if hasattr(socket, "input_value"):
+                    socket.input_value = val
+                elif hasattr(socket, "default_value"):
+                    socket.default_value = val
+        finally:
+            NodeSocketCnt.silent_updates = prev_silent
+
+    def _modifier_differs(self):
+        """Gate 2: cheap check whether any unlinked input differs from the modifier."""
+        if not self.obj or not self.node_tree:
+            return False
+        modifier = self.obj.modifiers.get(self.modifier_name)
+        if modifier is None:
+            return False
+        name_to_id = self._get_name_to_id()
+        for socket in self.inputs:
+            if socket.is_linked:
+                continue
+            identifier = name_to_id.get(socket.name)
+            if identifier is None:
+                continue
+            try:
+                if bpy.app.version < (5, 2, 0):
+                    val = modifier[identifier]
+                else:
+                    val = getattr(modifier.properties.inputs, identifier).value
+            except Exception:
+                continue
+            if hasattr(socket, "input_value"):
+                cur = socket.input_value
+                if isinstance(val, float) or isinstance(cur, float):
+                    if abs(cur - val) > 1e-6:
+                        return True
+                elif cur != val:
+                    return True
+            elif hasattr(socket, "default_value"):
+                if socket.default_value != val:
+                    return True
+        return False
+
+    def _pull_from_modifier(self):
+        """Modifier -> node: write the modifier's input values into the unlinked sockets."""
+        if not self.obj or not self.node_tree:
+            return
+        modifier = self.obj.modifiers.get(self.modifier_name)
+        if modifier is None:
+            return
+        name_to_id = self._get_name_to_id()
+        prev_silent = NodeSocketCnt.silent_updates
+        NodeSocketCnt.silent_updates = True
+        try:
+            for socket in self.inputs:
+                if socket.is_linked:
+                    continue
+                identifier = name_to_id.get(socket.name)
+                if identifier is None:
+                    continue
+                try:
+                    if bpy.app.version < (5, 2, 0):
+                        val = modifier[identifier]
+                    else:
+                        val = getattr(modifier.properties.inputs, identifier).value
+                except Exception:
+                    continue
+                if hasattr(socket, "input_value"):
+                    cur = socket.input_value
+                    if isinstance(val, float) or isinstance(cur, float):
+                        if abs(cur - val) > 1e-6:
+                            socket.input_value = val
+                    elif cur != val:
+                        socket.input_value = val
+                elif hasattr(socket, "default_value"):
+                    if socket.default_value != val:
+                        socket.default_value = val
+        finally:
+            NodeSocketCnt.silent_updates = prev_silent
 
     def __add_input_sockets(self, modifier):
         # TODO: check if group input exits or check interface
@@ -160,7 +342,11 @@ class ModifierControlNode(ConstantNodeCnt):
             modifier = self.obj.modifiers[self.modifier_name]
             self.__add_input_sockets(modifier)
             self.__add_socket_outputs(modifier)
+            self._init_inputs_from_modifier()
             self.subscribe_to_interface()
+            _register_node(self)
+        else:
+            _unregister_node(self)
 
     def subscribe_to_interface(self):
         if self.uuid_msg_bus in Data.uuid_message_bus.keys():
@@ -186,6 +372,7 @@ class ModifierControlNode(ConstantNodeCnt):
 
     def free(self):
         super().free()
+        _unregister_node(self)
         if self.uuid_msg_bus in Data.uuid_message_bus.keys():
             bpy.msgbus.clear_by_owner(Data.uuid_message_bus[self.uuid_msg_bus])
             del Data.uuid_message_bus[self.uuid_msg_bus]
