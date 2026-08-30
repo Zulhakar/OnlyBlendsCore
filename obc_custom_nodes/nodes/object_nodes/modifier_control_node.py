@@ -5,7 +5,6 @@ from ..basic_nodes import ConstantNodeCnt
 from ...base.global_data import Data
 from ...sockets.basic_sockets import NodeSocketCnt
 
-
 _active_nodes = set()
 _depsgraph_syncing = False
 _initial_scan_done = False
@@ -38,13 +37,13 @@ def _depsgraph_sync():
     if not _initial_scan_done:
         _rescan_active_nodes()
         _initial_scan_done = True
-    if not _active_nodes:          # gate 1: nothing bound -> return immediately
+    if not _active_nodes:  # gate 1: nothing bound -> return immediately
         return
     _depsgraph_syncing = True
     try:
         for node in list(_active_nodes):
             try:
-                if node._modifier_differs():   # gate 2: only act when values differ
+                if node._modifier_differs():  # gate 2: only act when values differ
                     node._pull_from_modifier()
             except Exception:
                 pass
@@ -79,6 +78,8 @@ def unregister_depsgraph_handler():
         bpy.app.handlers.load_post.remove(_on_file_load)
     _active_nodes.clear()
     _initial_scan_done = False
+
+
 def node_tree_interface_changed(*args):
     self = args[0]
     if self:
@@ -139,34 +140,27 @@ class ModifierControlNode(ConstantNodeCnt):
                     name_to_id[item.name] = item.identifier
         return name_to_id
 
-    def _init_inputs_from_modifier(self):
+    def _init_inputs_from_modifier(self, modifier):
         """Initialization: read the modifier's current input values into the sockets."""
-        if not self.obj or not self.node_tree:
-            return
-        modifier = self.obj.modifiers.get(self.modifier_name)
         if modifier is None:
             return
         name_to_id = self._get_name_to_id()
-        prev_silent = NodeSocketCnt.silent_updates
-        NodeSocketCnt.silent_updates = True
-        try:
-            for socket in self.inputs:
-                identifier = name_to_id.get(socket.name)
-                if identifier is None:
-                    continue
-                try:
-                    if bpy.app.version < (5, 2, 0):
-                        val = modifier[identifier]
-                    else:
-                        val = getattr(modifier.properties.inputs, identifier).value
-                except Exception:
-                    continue
-                if hasattr(socket, "input_value"):
-                    socket.input_value = val
-                elif hasattr(socket, "default_value"):
-                    socket.default_value = val
-        finally:
-            NodeSocketCnt.silent_updates = prev_silent
+
+        for socket in self.inputs:
+            identifier = name_to_id.get(socket.name)
+            if identifier is None:
+                continue
+
+            if bpy.app.version < (5, 2, 0):
+                val = modifier[identifier]
+            else:
+                val = getattr(modifier.properties.inputs, identifier).value
+            socket.disable_socket_update = True
+            if hasattr(socket, "input_value"):
+                socket.input_value = val
+            elif hasattr(socket, "default_value"):
+                socket.default_value = val
+            socket.disable_socket_update = False
 
     def _modifier_differs(self):
         """Gate 2: cheap check whether any unlinked input differs from the modifier."""
@@ -249,7 +243,7 @@ class ModifierControlNode(ConstantNodeCnt):
                                     'NodeSocketBundle'):
                 continue
             if socket.bl_idname == 'NodeSocketFloat':
-                self.inputs.new('NodeSocketFloatCnt', socket.name)
+                new_socket = self.inputs.new('NodeSocketFloatCnt', socket.name)
             elif socket.bl_idname == 'NodeSocketInt':
                 self.inputs.new('NodeSocketIntCnt', socket.name)
             elif socket.bl_idname == 'NodeSocketBool':
@@ -342,7 +336,7 @@ class ModifierControlNode(ConstantNodeCnt):
             modifier = self.obj.modifiers[self.modifier_name]
             self.__add_input_sockets(modifier)
             self.__add_socket_outputs(modifier)
-            self._init_inputs_from_modifier()
+            self._init_inputs_from_modifier(modifier)
             self.subscribe_to_interface()
             _register_node(self)
         else:

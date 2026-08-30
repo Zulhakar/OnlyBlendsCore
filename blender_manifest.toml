@@ -1,9 +1,9 @@
 schema_version = "1.0.0"
 
 id = "only_blends_core"
-version = "0.5.2"
+version = "0.5.2-1"
 name = "OnlyBlends.Core"
-tagline = "1-Node Editor from scratch 2-Spawn Objects from Geo Modifiers"
+tagline = "Node Editor from scratch, Control Geometry Node Modifier"
 maintainer = "Zulhakar (ChangeGamer) <Ilineiros@proton.me>"
 type = "add-on"
 website = "https://github.com/Zulhakar/OnlyBlendsCore"
