@@ -16,3 +16,6 @@ This Repo is not only the Core of OB.Mixer and OB.Gamepad or a Template for othe
 
 - The group functionality should now be usable
 - Modifier Control Node have correct Socket Names and Menu Socket can be changed via OBC String
+
+0.5.2-2
+  - fix make_group bugs
