@@ -23,7 +23,9 @@ def create_child_node_tree(old_tree, selected):
         new.copy(node)
         if new.bl_idname == "GroupNodeCnt":
             new.target_tree = node.target_tree
-
+        elif new.bl_idname == "ModifierControlNode":
+            if node.node_tree:
+                new.node_tree = node.node_tree
 
         for i, inp_ in enumerate(node.inputs):
             if i < len(new.inputs):

@@ -154,13 +154,17 @@ class ModifierControlNode(ConstantNodeCnt):
             if bpy.app.version < (5, 2, 0):
                 val = modifier[identifier]
             else:
-                val = getattr(modifier.properties.inputs, identifier).value
-            socket.disable_socket_update = True
-            if hasattr(socket, "input_value"):
-                socket.input_value = val
-            elif hasattr(socket, "default_value"):
-                socket.default_value = val
-            socket.disable_socket_update = False
+                attr = getattr(modifier.properties.inputs, identifier)
+                val = attr.value if hasattr(attr, "value") else None
+            if val:
+                if hasattr(socket, "disable_socket_update"):
+                    socket.disable_socket_update = True
+                if hasattr(socket, "input_value"):
+                    socket.input_value = val
+                elif hasattr(socket, "default_value"):
+                    socket.default_value = val
+                if hasattr(socket, "disable_socket_update"):
+                    socket.disable_socket_update = False
 
     def _modifier_differs(self):
         """Gate 2: cheap check whether any unlinked input differs from the modifier."""
@@ -237,13 +241,10 @@ class ModifierControlNode(ConstantNodeCnt):
         group_input = get_group_input(self.node_tree)[0]
         self.inputs.clear()
         for i, socket in enumerate(group_input.outputs):
-            # skip virtual / non-controllable sockets (e.g. the Geometry input)
-            if socket.bl_idname in ('NodeSocketVirtual', 'NodeSocketGeometry',
-                                    'NodeSocketMatrix', 'NodeSocketClosure',
-                                    'NodeSocketBundle'):
+            if socket.bl_idname in ('NodeSocketVirtual'):
                 continue
             if socket.bl_idname == 'NodeSocketFloat':
-                new_socket = self.inputs.new('NodeSocketFloatCnt', socket.name)
+                self.inputs.new('NodeSocketFloatCnt', socket.name)
             elif socket.bl_idname == 'NodeSocketInt':
                 self.inputs.new('NodeSocketIntCnt', socket.name)
             elif socket.bl_idname == 'NodeSocketBool':
@@ -255,9 +256,17 @@ class ModifierControlNode(ConstantNodeCnt):
             elif socket.bl_idname == 'NodeSocketMenu':
                 menu_sock = self.inputs.new('NodeSocketStringCnt', socket.name)
                 menu_sock.input_value = socket.default_value
+            elif socket.bl_idname == 'NodeSocketSound':
+                try:
+                    self.inputs.new('NodeSocketSoundObm', socket.name)
+                except Exception as e:
+                    print("OnlyBlends.Mixer not installed")
+                    self.inputs.new('NodeSocketSound', socket.name)
             else:
                 # TODO test different blender versions
                 self.inputs.new(socket.bl_idname, socket.name)
+                #if socket.bl_idname == 'NodeSocketSound':
+                #    print(socket.draw_color(modifier, socket.node))
 
     def __add_socket_outputs(self, modifier):
         group_output = get_group_output(self.node_tree)[0]
@@ -334,7 +343,7 @@ class ModifierControlNode(ConstantNodeCnt):
         if self.node_tree:
             self.obj, self.modifier_name = find_objects_of_node_group(self.node_tree.name)
             modifier = self.obj.modifiers[self.modifier_name]
-            self.__add_input_sockets(modifier)
+            self.__add_input_sockets(context)
             self.__add_socket_outputs(modifier)
             self._init_inputs_from_modifier(modifier)
             self.subscribe_to_interface()
@@ -382,3 +391,6 @@ class ModifierControlNode(ConstantNodeCnt):
             if hasattr(socket, "input_value"):
                 for link in socket.links:
                     link.to_socket.input_value = socket.input_value
+
+    def copy(self, node):
+        super().copy(node)
