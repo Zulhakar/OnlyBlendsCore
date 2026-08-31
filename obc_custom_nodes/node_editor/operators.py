@@ -24,8 +24,53 @@ def create_child_node_tree(old_tree, selected):
         if new.bl_idname == "GroupNodeCnt":
             new.target_tree = node.target_tree
         elif new.bl_idname == "ModifierControlNode":
-            if node.node_tree:
-                new.node_tree = node.node_tree
+            new.node_tree = node.node_tree
+            new.obj = node.obj
+            new.modifier_name = node.modifier_name
+            new.uuid_msg_bus = node.uuid_msg_bus
+
+        elif new.bl_idname == "SwitchNodeCnt":
+            new.input_type = node.input_type
+        elif new.bl_idname == "RealtimeValueNode":
+            new.input_type = node.input_type
+        elif new.bl_idname == "SceneInfoNodeCnt":
+            new.uuid_msg_bus = node.uuid_msg_bus
+        elif new.bl_idname == "MathNodeCnt":
+            new.operation = node.operation
+        elif new.bl_idname == "CompareAndBoolNodeCnt":
+            new.operation = node.operation
+            new.socket_type = node.socket_type
+        elif new.bl_idname == "DuplicateObjectNode":
+            new.obj = node.obj
+            new.last_name = node.last_name
+        #mixer
+        elif new.bl_idname == "SampleToObjectNode":
+            new.last_file_name = node.last_file_name
+        elif new.bl_idname == "ImportMidiObm":
+            new.filter_glob = node.filter_glob
+        elif new.bl_idname == "MidiToTrackObjectNode":
+            new.last_file_name = node.last_file_name
+        elif new.bl_idname == "NoteNode":
+            new.note = node.note
+        elif new.bl_idname == "EditSampleNode":
+            new.node_uuid = node.node_uuid
+            new.operation = node.operation
+        elif new.bl_idname == "ImportSoundObm":
+            new.filter_glob = node.filter_glob
+        elif new.bl_idname == "ObjectToSampleNode":
+            new.node_uuid = node.node_uuid
+            new.domain = node.domain
+        elif new.bl_idname == "OscillatorSampleNode":
+            new.node_uuid = node.node_uuid
+            new.waveform_selection = node.waveform_selection
+        elif new.bl_idname == "SampleToSoundNode":
+            new.container_selection = node.container_selection
+        elif new.bl_idname == "SoundToSampleNode":
+            new.node_uuid = node.node_uuid
+        elif new.bl_idname == "TrackSampleNode":
+            new.node_uuid = node.node_uuid
+        elif new.bl_idname == "SpeakerDataNode":
+            new.uuid_msg_bus = node.uuid_msg_bus
 
         for i, inp_ in enumerate(node.inputs):
             if i < len(new.inputs):

@@ -75,6 +75,7 @@ class ConstantNodeCnt(NodeCnt, bpy.types.Node):
     def recompute(self):
         if len(self.outputs) > 0:
             self.socket_update(self.outputs[0])
+
     def socket_update(self, socket):
         super().socket_update(socket)
         if not self.mute:
